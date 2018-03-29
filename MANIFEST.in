@@ -1,0 +1,5 @@
+include README.md
+include CHANGES.md
+recursive-include texttaglib/data *.sql
+recursive-include texttaglib/data *.json
+recursive-include texttaglib/data *.gz
