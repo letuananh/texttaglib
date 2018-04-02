@@ -56,6 +56,7 @@ import logging
 
 try:
     from chirptext import texttaglib as ttl
-    __all__ = ['ttl']
+    from texttaglib.sqlite import TTLSQLite
+    __all__ = ['ttl', 'TTLSQLite']
 except:
     logging.getLogger(__name__).exception("texttaglib package was not loaded properly")

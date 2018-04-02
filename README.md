@@ -34,3 +34,7 @@ The script above will generate this corpus
 -rw-rw-r--.  1 tuananh tuananh       0  3月 29 13:10 mydoc_tags.txt
 -rw-rw-r--.  1 tuananh tuananh      58  3月 29 13:10 mydoc_tokens.txt
 ```
+
+# SQLite support
+TTL data can be stored in a SQLite database for better corpus analysis.
+Sample code will be added soon.
