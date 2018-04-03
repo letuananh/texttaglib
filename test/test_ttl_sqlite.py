@@ -122,7 +122,7 @@ class TestTTLSQLite(unittest.TestCase):
             self.assertTrue(sent.tags)
             self.assertTrue(sent.tokens)
             self.assertTrue(sent.concepts)
-            self.assertEqual(sent.get_tag('eng').label, 'I like calio cats.')
+            self.assertEqual(sent.get_tag('eng').label, 'I like calico cats.')
             self.assertEqual(sent.comment, 'mikeneko ga suki desu.')
             getLogger().debug(sent.tags)
             getLogger().debug(sent.tokens)
