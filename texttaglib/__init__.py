@@ -46,7 +46,7 @@ __description__ = "Python library for managing and annotating textual corpus usi
 __url__ = "https://github.com/letuananh/texttaglib"
 __maintainer__ = "Le Tuan Anh"
 __version_major__ = "0.1"
-__version__ = "{}a2".format(__version_major__)
+__version__ = "{}a3".format(__version_major__)
 __version_long__ = "{} - Alpha".format(__version_major__)
 __status__ = "Prototype"
 
