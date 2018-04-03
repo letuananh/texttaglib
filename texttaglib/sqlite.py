@@ -93,10 +93,10 @@ class TTLSQLite(Schema):
         return doc
 
     @with_ctx
-    def ensure_corpus(self, name, ctx=None):
+    def ensure_corpus(self, name, ctx=None, **kwargs):
         corpus = ctx.corpus.select_single('name=?', (name,))
         if corpus is None:
-            corpus = self.new_corpus(name, ctx=ctx)
+            corpus = self.new_corpus(name, ctx=ctx, **kwargs)
         return corpus
 
     @with_ctx
