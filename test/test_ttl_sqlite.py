@@ -103,7 +103,7 @@ class TestTTLSQLite(unittest.TestCase):
             testdoc_path = os.path.join(TEST_DIR, 'data', 'test.json')
             docjson = ttl.Document.from_json_file(testdoc_path)
             docjson[0].comment = 'mikeneko ga suki desu.'
-            docjson[0].new_tag('I like calio cats.', tagtype='eng')
+            docjson[0].new_tag('I like calico cats.', tagtype='eng')
             docjson[0][0].new_tag('mi', tagtype='romaji')
             docjson[1].comment = 'It rains.'
             docjson[1].new_tag('It rains.', tagtype='eng')

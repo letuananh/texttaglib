@@ -27,7 +27,7 @@ db = TTLSQLite('data/demo.db')
 # create a sample corpus (if needed)
 encor = db.ensure_corpus(name='eng', title='English sentences')
 # create a sample document in corpus 'eng' (if needed)
-endoc = db.new_doc(name='eng1', title='English sample sentences #1', lang='eng', corpusID=encor.ID)
+endoc = db.ensure_doc(name='eng1', title='English sample sentences #1', lang='eng', corpus=encor)
 
 # get document by name
 doc = db.doc.select_single('name=?', ('eng1',))
