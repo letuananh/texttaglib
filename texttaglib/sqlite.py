@@ -106,6 +106,15 @@ class TTLSQLite(Schema):
             doc = self.new_doc(name=name, corpusID=corpus.ID, ctx=ctx, **kwargs)
         return doc
 
+    def simplify_tag(self, a_tag):
+        if a_tag.cfrom == -1:
+            a_tag.cfrom = None
+        if a_tag.cto == -1:
+            a_tag.cto = None
+        if not a_tag.source:
+            a_tag.source = None
+        return a_tag
+
     @with_ctx
     def save_sent(self, sent_obj, ctx=None):
         # insert sentence
@@ -115,6 +124,7 @@ class TTLSQLite(Schema):
         for tag in sent_obj.tags:
             tag.sid = sent_obj.ID
             tag.wid = None  # ensure that wid is not saved
+            self.simplify_tag(tag)
             tag.ID = ctx.tag.save(tag)
         # save tokens
         for idx, token in enumerate(sent_obj):
@@ -125,6 +135,7 @@ class TTLSQLite(Schema):
             for tag in token:
                 tag.sid = sent_obj.ID
                 tag.wid = token.ID
+                self.simplify_tag(tag)
                 tag.ID = ctx.tag.save(tag)
         # save concepts
         for idx, concept in enumerate(sent_obj.concepts):
