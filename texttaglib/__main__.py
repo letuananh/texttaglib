@@ -33,9 +33,10 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 
 import logging
 
+from chirptext import io as chio
 from chirptext.cli import CLIApp, setup_logging
 
-from texttaglib import ttl, TTLSQLite
+from texttaglib import ttl, TTLSQLite, ttlig
 
 # ----------------------------------------------------------------------
 # Configuration
@@ -83,6 +84,21 @@ def make_db(cli, args):
     print("Done!")
 
 
+def make_ttl(cli, args):
+    ''' Convert TTLIG file to TTL format '''
+    sc = 0
+    ttl_writer = ttl.TxtWriter.from_path(args.output) if args.output else None
+    with chio.open(args.ttlig) as infile:
+        for sent in ttlig.read_stream_iter(infile):
+            sc += 1
+            if ttl_writer is not None:
+                ttl_sent = sent.to_ttl()
+                ttl_writer.write_sent(ttl_sent)
+    if ttl_writer is not None:
+        print("Output file: {}".format(args.output))
+    print("Processed {} sentence(s).".format(sc))
+
+
 # -------------------------------------------------------------------------------
 # Main
 # -------------------------------------------------------------------------------
@@ -97,6 +113,10 @@ def main():
     task.add_argument('corpus', help='Corpus name')
     task.add_argument('doc', help='Document name', default=None)
     task.add_argument('-k', '--topk', help='Only select the top k frequent elements', default=None, type=int)
+
+    task = app.add_task('ig', func=make_ttl)
+    task.add_argument('ttlig', help='TTLIG file')
+    task.add_argument('-o', '--output', help='Output TTL file')
     # run app
     app.run()
 

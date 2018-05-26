@@ -100,6 +100,8 @@ class TestFurigana(unittest.TestCase):
     def test_TTL_tokenizer(self):
         parser = TTLTokensParser()
         tokens = parser.parse_ruby('{猫/ねこ} が {好/す}き です 。')
+        token_text = [t.text() for t in tokens]
+        self.assertEqual(token_text, ['猫', 'が', '好き', 'です', '。'])
         actual = parser.delimiter.join(r.to_html() for r in tokens)
         expected = '<ruby><rb>猫</rb><rt>ねこ</rt></ruby> が <ruby><rb>好</rb><rt>す</rt></ruby>き です 。'
         self.assertEqual(expected, actual)

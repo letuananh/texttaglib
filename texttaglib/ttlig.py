@@ -39,6 +39,8 @@ from collections import OrderedDict
 from chirptext import DataObject, piter
 from chirptext import io as chio
 
+from texttaglib import ttl
+
 
 # ----------------------------------------------------------------------
 # Configuration
@@ -72,6 +74,20 @@ class IGRow(DataObject):
         self.morphgloss = morphgloss
         self.wordgloss = wordgloss
         self.translation = translation
+
+    def to_ttl(self):
+        ttl_sent = ttl.Sentence(text=self.text)
+        data = self.to_dict()
+        for l in TTLIG.KNOWN_LABELS:
+            if l not in ['text', 'orth', 'tokens'] and l in data and data[l]:
+                ttl_sent.new_tag(data[l], tagtype=l)
+        if self.tokens:
+            _tokens = parse_ruby(self.tokens)
+            ttl_sent.tokens = (t.text() for t in _tokens)
+            for ttl_token, furi_token in zip(ttl_sent, _tokens):
+                ttl_token.new_tag(furi_token.surface, tagtype='furi')
+            pass
+        return ttl_sent
 
     # Matrix alias
     @property
@@ -112,7 +128,8 @@ class TTLIG(object):
     AUTO_LINES = ['transliteration', 'transcription', 'morphtrans', 'gloss']
     MANUAL_TAG = '__manual__'
     AUTO_TAG = '__auto__'
-    KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto', AUTO_TAG, MANUAL_TAG]
+    SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
+    KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto']
 
     def __init__(self, meta):
         self.meta = meta
@@ -145,7 +162,7 @@ class TTLIG(object):
                     raise ValueError("Invalid line (no tag found) -> {}".format(line))
                 _tag = line[:tag_idx].strip()
                 _val = line[tag_idx + 1:].strip()
-                if _tag not in TTLIG.KNOWN_LABELS:
+                if _tag.lower() not in TTLIG.KNOWN_LABELS:
                     getLogger().warning("Unknown tag was used {}: {}".format(_tag, _val))
                 line_dict[_tag] = _val
             return IGRow(**line_dict)
@@ -158,7 +175,7 @@ class TTLIG(object):
     def read_iter(self, stream):
         line_tags = self.row_format()
         for tag in line_tags:
-            if tag not in TTLIG.KNOWN_LABELS:
+            if tag.lower() not in TTLIG.KNOWN_LABELS + TTLIG.SPECIAL_LABELS:
                 getLogger().warning("Unknown label in header: {}".format(tag))
         for row in IGStreamReader._iter_stream(stream):
             yield self._parse_row(row, line_tags)
@@ -265,11 +282,11 @@ class RubyFrag(DataObject):
 
 
 def parse_furigana(text):
-    ''' Parse TTLRuby token '''
+    ''' Parse TTLRuby token (returns a RubyToken)'''
     if text is None:
         raise ValueError
     start = 0
-    ruby = RubyToken()
+    ruby = RubyToken(surface=text)
     ms = [(m.groupdict(), m.span()) for m in FURIMAP.finditer(text)]
     # frag: ruby fragment
     for frag, (cfrom, cto) in ms:
@@ -314,6 +331,7 @@ class TTLTokensParser(object):
         return tokens
 
     def parse_ruby(self, text):
+        ''' Return a list of RubyToken '''
         return [parse_furigana(t) for t in self.parse(text)]
 
 
