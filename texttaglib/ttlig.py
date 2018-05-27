@@ -68,7 +68,6 @@ class IGRow(DataObject):
     def __init__(self, text='', transliteration='', transcription='', morphtrans='', morphgloss='', wordgloss='', translation='', **kwargs):
         """
         """
-        super().__init__(**kwargs)
         self.text = text
         self.transliteration = transliteration
         self.transcription = transcription
@@ -76,6 +75,7 @@ class IGRow(DataObject):
         self.morphgloss = morphgloss
         self.wordgloss = wordgloss
         self.translation = translation
+        self.update(kwargs)
 
     def to_ttl(self):
         ttl_sent = ttl.Sentence(text=self.text)
@@ -208,6 +208,10 @@ class IGStreamReader(object):
                     getLogger().warning("Key {} is duplicated in the header".format(key))
                 meta[key] = value
             else:
+                # this line is weird
+                break
+            if not lines.peep() or not lines.peep().value.strip():
+                # if next line is empty, break
                 break
         return meta
 

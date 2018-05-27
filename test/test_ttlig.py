@@ -154,8 +154,8 @@ I have two cat-s.
     def test_read_file(self):
         inpath = os.path.join(TEST_DIR, 'data', 'testig_jp_manual.txt')
         s1, s2 = ttlig.read(inpath)
-        s1_json = {'_DataObject__extra_data': {}, 'tokens': '{猫/ねこ} が {好/す}き です 。', 'translit': 'neko ga suki desu .', 'gloss': 'cat SUBM likeable COP .', 'translat': 'I like cats.', 'text': '猫が好きです。', 'transliteration': '', 'transcription': '', 'morphtrans': '', 'morphgloss': '', 'wordgloss': '', 'translation': ''}
-        s2_json = {"_DataObject__extra_data": {}, "tokens": "{雨/あめ} が {降/ふ}る 。", "translat": "It rains.", "text": "雨が降る。", "transliteration": "", "transcription": "", "morphtrans": "", "morphgloss": "", "wordgloss": "", "translation": ""}
+        s1_json = {'text': '猫が好きです。', 'transliteration': 'neko ga suki desu .', 'transcription': '', 'morphtrans': '', 'morphgloss': 'cat SUBM likeable COP .', 'wordgloss': '', 'translation': 'I like cats.', 'ident': '01a_01', 'tokens': '{猫/ねこ} が {好/す}き です 。'}
+        s2_json = {'text': '雨が降る。', 'transliteration': '', 'transcription': '', 'morphtrans': '', 'morphgloss': '', 'wordgloss': '', 'translation': 'It rains.', 'ident': '01a_02', 'tokens': '{雨/あめ} が {降/ふ}る 。'}
         self.assertEqual(s1.to_dict(), s1_json)
         self.assertEqual(s2.to_dict(), s2_json)
         # test furigana
@@ -165,10 +165,20 @@ I have two cat-s.
         self.assertEqual(ttlig.make_ruby_html(s2.tokens), s2_furi)
 
     def test_ttlig_auto(self):
+        inpath = os.path.join(TEST_DIR, 'data', 'testig_jp_auto.txt')
+        sents = ttlig.read(inpath)
+        s = sents[0]
+        self.assertEqual(s.text, '猫が好きです。')
+        self.assertEqual(s.tokens, '{猫/ねこ} が {好/す}き です 。')
+        self.assertEqual(s.transliteration, 'neko ga suki desu .')
+        self.assertEqual(s.morphgloss, 'cat SUBM likeable COP .')
+        self.assertEqual(s.translation, 'I like cats.')
+
+    def test_ttlig_manual(self):
         inpath = os.path.join(TEST_DIR, 'data', 'testig_jp_manual.txt')
         s1, s2 = ttlig.read(inpath)
-        s1_dict = {'_DataObject__extra_data': {}, 'tokens': '{猫/ねこ} が {好/す}き です 。', 'translit': 'neko ga suki desu .', 'gloss': 'cat SUBM likeable COP .', 'translat': 'I like cats.', 'text': '猫が好きです。', 'transliteration': '', 'transcription': '', 'morphtrans': '', 'morphgloss': '', 'wordgloss': '', 'translation': ''}
-        s2_dict = {'_DataObject__extra_data': {}, 'tokens': '{雨/あめ} が {降/ふ}る 。', 'translat': 'It rains.', 'text': '雨が降る。', 'transliteration': '', 'transcription': '', 'morphtrans': '', 'morphgloss': '', 'wordgloss': '', 'translation': ''}
+        s1_dict = {'text': '猫が好きです。', 'transliteration': 'neko ga suki desu .', 'transcription': '', 'morphtrans': '', 'morphgloss': 'cat SUBM likeable COP .', 'wordgloss': '', 'translation': 'I like cats.', 'ident': '01a_01', 'tokens': '{猫/ねこ} が {好/す}き です 。'}
+        s2_dict = {'text': '雨が降る。', 'transliteration': '', 'transcription': '', 'morphtrans': '', 'morphgloss': '', 'wordgloss': '', 'translation': 'It rains.', 'ident': '01a_02', 'tokens': '{雨/あめ} が {降/ふ}る 。'}
         self.assertEqual(s1.to_dict(), s1_dict)
         self.assertEqual(s2.to_dict(), s2_dict)
 
