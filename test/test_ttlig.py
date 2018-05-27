@@ -183,6 +183,14 @@ I have two cat-s.
         invalid_file = os.path.join(TEST_DIR, 'data', 'testig_invalid.txt')
         self.assertRaises(Exception, lambda: ttlig.read(invalid_file))
 
+    def test_parsing(self):
+        igrow = ttlig.text_to_igrow('友達と巡り会った。')
+        self.assertEqual(igrow.text, '友達と巡り会った。')
+        self.assertEqual(igrow.tokens, '{友達/ともだち} と {巡/めぐ}り{会/あ}っ た 。')
+        expected = '<ruby><rb>友達</rb><rt>ともだち</rt></ruby> と <ruby><rb>巡</rb><rt>めぐ</rt></ruby>り<ruby><rb>会</rb><rt>あ</rt></ruby>っ た 。'
+        actual = ttlig.make_ruby_html(igrow.tokens)
+        self.assertEqual(expected, actual)
+
 
 # -------------------------------------------------------------------------------
 # MAIN

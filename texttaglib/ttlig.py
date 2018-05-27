@@ -33,11 +33,13 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 
 import re
 import logging
+from difflib import ndiff
 
 from collections import OrderedDict
 
 from chirptext import DataObject, piter
 from chirptext import io as chio
+from chirptext.deko import parse
 
 from texttaglib import ttl
 
@@ -85,7 +87,8 @@ class IGRow(DataObject):
             _tokens = parse_ruby(self.tokens)
             ttl_sent.tokens = (t.text() for t in _tokens)
             for ttl_token, furi_token in zip(ttl_sent, _tokens):
-                ttl_token.new_tag(furi_token.surface, tagtype='furi')
+                if furi_token.surface != furi_token.text():
+                    ttl_token.new_tag(furi_token.surface, tagtype='furi')
             pass
         return ttl_sent
 
@@ -129,6 +132,7 @@ class TTLIG(object):
     MANUAL_TAG = '__manual__'
     AUTO_TAG = '__auto__'
     SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
+    KNOWN_META = ['language', 'language code', 'lines', 'author', 'date']
     KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto']
 
     def __init__(self, meta):
@@ -263,6 +267,15 @@ class RubyToken(DataObject):
                 frags.append(str(g))
         return ''.join(frags)
 
+    def to_code(self):
+        frags = []
+        for g in self.groups:
+            if isinstance(g, RubyFrag):
+                frags.append('{{{text}/{furi}}}'.format(text=g.text, furi=g.furi))
+            else:
+                frags.append(str(g))
+        return ''.join(frags)
+
     def __str__(self):
         return self.text()
 
@@ -345,3 +358,48 @@ def parse_ruby(text):
 def make_ruby_html(text):
     tokens = parse_ruby(text)
     return DEFAULT_TTL_TOKEN_PARSER.delimiter.join(r.to_html() for r in tokens)
+
+
+def mctoken_to_furi(token):
+    ''' Convert mecab token to TTLIG format '''
+    edit_seq = ndiff(token.surface, token.reading_hira())
+    ruby = RubyToken(surface=token.surface)
+    kanji = ''
+    text = ''
+    furi = ''
+    for item in edit_seq:
+        if item.startswith('- '):
+            # flush text if needed
+            if text:
+                ruby.append(text)
+                text = ''
+            kanji += item[2:]
+        elif item.startswith('+ '):
+            furi += item[2:]
+        elif item.startswith('  '):
+            if kanji:
+                ruby.append(RubyFrag(text=kanji, furi=furi))
+                kanji = ''
+                furi = ''
+            text += item[2:]
+    # flush final parts
+    if text:
+        ruby.append(text)
+    elif kanji:
+        ruby.append(RubyFrag(text=kanji, furi=furi))
+    return ruby
+
+
+def text_to_igrow(txt):
+    ''' Parse text to TTLIG format '''
+    msent = parse(txt)
+    tokens = []
+    pos = []
+    for token in msent:
+        if token.is_eos:
+            continue
+        pos.append(token.pos3())
+        r = mctoken_to_furi(token)
+        tokens.append(r.to_code())
+    igrow = IGRow(text=txt, tokens=' '.join(tokens), pos=' '.join(pos))
+    return igrow
