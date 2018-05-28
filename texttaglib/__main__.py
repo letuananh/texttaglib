@@ -31,12 +31,15 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 
 ########################################################################
 
+import os
 import logging
+from lxml import etree
 
+from chirptext import TextReport, FileHelper
 from chirptext import io as chio
 from chirptext.cli import CLIApp, setup_logging
 
-from texttaglib import ttl, TTLSQLite, ttlig
+from texttaglib import ttl, TTLSQLite, ttlig, orgmode
 
 # ----------------------------------------------------------------------
 # Configuration
@@ -99,6 +102,81 @@ def make_ttl(cli, args):
     print("Processed {} sentence(s).".format(sc))
 
 
+def jp_line_proc(line, iglines):
+    igrow = ttlig.text_to_igrow(line.replace('\u3000', ' ').strip())
+    iglines.append(igrow.text)
+    iglines.append(igrow.tokens)
+    iglines.append("")
+
+
+def convert_org_to_tig(inpath, outpath):
+    title, meta, lines = orgmode.read(inpath)
+    meta.append(("Lines", "text tokens"))
+    out = orgmode.org_to_ttlig(title, meta, lines, jp_line_proc)
+    output = TextReport(outpath)
+    for line in out:
+        output.print(line)
+
+
+def org_to_ttlig(cli, args):
+    ''' Convert ORG file to TTLIG format '''
+    if args.orgfile:
+        # single file mode
+        convert_org_to_tig(args.orgfile, args.output)
+    elif args.orgdir:
+        if not args.output:
+            print("Output directory is required for batch mode")
+            exit()
+        # make output directory
+        if not os.path.exists(args.output):
+            print("Make directory: {}".format(args.output))
+            os.makedirs(args.output)
+        else:
+            print("Output directory: {}".format(args.output))
+        filenames = FileHelper.get_child_files(args.orgdir)
+        for filename in filenames:
+            infile = os.path.join(args.orgdir, filename)
+            outfile = os.path.join(args.output, FileHelper.replace_ext(filename, 'tig'))
+            if os.path.exists(outfile):
+                print("File {} exists. SKIPPED".format(outfile))
+            else:
+                print("Generating: {} => {}".format(infile, outfile))
+                convert_org_to_tig(infile, outfile)
+    print("Done")
+
+
+def make_text(sent, delimiter=' '):
+    frags = []
+    if sent.tokens:
+        for tk in sent:
+            furi = tk.find('furi', default=None)
+            if furi:
+                frags.append(ttlig.make_ruby_html(furi.label))
+            else:
+                frags.append(tk.text)
+    html_text = delimiter.join(frags) if frags else sent.text
+    return "<text>{}</text>".format(html_text)
+
+
+def make_html(cli, args):
+    ''' Convert TTL to HTML '''
+    print("Reading document ...")
+    ttl_doc = ttl.Document.read_ttl(args.ttl)
+    output = TextReport(args.output)
+    doc_node = etree.Element('doc')
+    for sent in ttl_doc:
+        sent_node = etree.SubElement(doc_node, 'sent')
+        text_node = etree.XML(make_text(sent, delimiter=args.delimiter))
+        sent_node.append(text_node)
+        if sent.get_tag('translation'):
+            etree.SubElement(sent_node, 'br')
+            trans_node = etree.SubElement(sent_node, 'trans')
+            trans_node.text = sent.get_tag('translation').label
+        etree.SubElement(sent_node, 'br')
+        etree.SubElement(sent_node, 'br')
+    output.write(etree.tostring(doc_node, encoding='unicode', pretty_print=not args.compact))
+
+
 # -------------------------------------------------------------------------------
 # Main
 # -------------------------------------------------------------------------------
@@ -117,6 +195,18 @@ def main():
     task = app.add_task('ig', func=make_ttl)
     task.add_argument('ttlig', help='TTLIG file')
     task.add_argument('-o', '--output', help='Output TTL file')
+
+    task = app.add_task('org', func=org_to_ttlig)
+    task.add_argument('-f', '--orgfile', help='ORG file')
+    task.add_argument('-d', '--orgdir', help='ORG directory (batch mode)')
+    task.add_argument('-o', '--output', help='Output TTL file or directory')
+
+    task = app.add_task('html', func=make_html)
+    task.add_argument('ttl', help='TTL file')
+    task.add_argument('-o', '--output', help='path to output HTML file')
+    task.add_argument('-c', '--compact', help='Do not use pretty print', action='store_true')
+    task.add_argument('-d', '--delimiter', help='Token delimiter', default=' ')
+
     # run app
     app.run()
 
