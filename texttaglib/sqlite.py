@@ -51,6 +51,38 @@ def getLogger():
 # Models
 # ----------------------------------------------------------------------
 
+class Meta(DataObject):
+    def __init__(self, key='', value='', **kwargs):
+        super().__init__(**kwargs)
+        self.key = key
+        self.value = value
+
+    def __repr__(self):
+        data = ("{}={}".format(k, v) for k, v in self.to_dict().items())
+        return "Meta({})".format(", ".join(data))
+
+    def __str__(self):
+        return str(self.to_dict())
+
+
+class DocMeta(DataObject):
+    def __repr__(self):
+        data = ("{}={}".format(k, v) for k, v in self.to_dict().items())
+        return "DocMeta({})".format(", ".join(data))
+
+    def __str__(self):
+        return str(self.to_dict())
+
+
+class CorpusMeta(DataObject):
+    def __repr__(self):
+        data = ("{}={}".format(k, v) for k, v in self.to_dict().items())
+        return "CorpusMeta({})".format(", ".join(data))
+
+    def __str__(self):
+        return str(self.to_dict())
+
+
 class Corpus(DataObject):
     pass
 
@@ -65,10 +97,13 @@ class TTLSQLite(Schema):
         super().__init__(*args, **kwargs)
         self.add_file(INIT_TTL_SQLITE)
         # add tables
+        self.add_table('meta', ['key', 'value'], proto=Meta).set_id('key')
+        self.add_table('meta_doc', ['name', 'key', 'value'], proto=DocMeta)
+        self.add_table('meta_cor', ['name', 'key', 'value'], proto=CorpusMeta)
         self.add_table('corpus', ['ID', 'name', 'title'], proto=Corpus).set_id('ID')
         self.add_table('document', ['ID', 'name', 'title', 'lang', 'corpusID'],
                        proto=ttl.Document, alias='doc').set_id('ID')
-        self.add_table('sentence', ['ID', 'text', 'docID', 'flag', 'comment'],
+        self.add_table('sentence', ['ID', 'ident', 'text', 'docID', 'flag', 'comment'],
                        proto=ttl.Sentence, alias='sent').set_id('ID')
         self.add_table('token', ['ID', 'sid', 'widx', 'text', 'lemma', 'pos', 'cfrom', 'cto', 'comment'],
                        proto=ttl.Token).set_id('ID')
@@ -182,4 +217,47 @@ class TTLSQLite(Schema):
         if limit:
             query += ' LIMIT ?'
             params.append(limit)
+        return ctx.execute(query, params)
+
+    # ---- Meta related functions
+    @with_ctx
+    def get_meta(self, ctx=None):
+        return ctx.meta.select()
+
+    @with_ctx
+    def get_meta_by_key(self, key, ctx=None):
+        return ctx.meta.by_id(key)
+
+    @with_ctx
+    def set_meta(self, key, value, ctx=None):
+        query = '''INSERT OR REPLACE INTO meta VALUES (?, ?)'''
+        params = (key, value)
+        return ctx.execute(query, params)
+
+    @with_ctx
+    def get_doc_meta(self, name, ctx=None):
+        return ctx.meta_doc.select('name = ?', (name,))
+
+    @with_ctx
+    def get_doc_meta_by_key(self, name, key, ctx=None):
+        return ctx.meta_doc.select_single('name = ? and key = ?', (name, key))
+
+    @with_ctx
+    def set_doc_meta(self, name, key, value, ctx=None):
+        query = '''INSERT OR REPLACE INTO meta_doc VALUES (?, ?, ?)'''
+        params = (name, key, value)
+        return ctx.execute(query, params)
+
+    @with_ctx
+    def get_cor_meta(self, name, ctx=None):
+        return ctx.meta_cor.select('name = ?', (name,))
+
+    @with_ctx
+    def get_cor_meta_by_key(self, name, key, ctx=None):
+        return ctx.meta_cor.select_single('name = ? and key = ?', (name, key))
+
+    @with_ctx
+    def set_cor_meta(self, name, key, value, ctx=None):
+        query = '''INSERT OR REPLACE INTO meta_cor VALUES (?, ?, ?)'''
+        params = (name, key, value)
         return ctx.execute(query, params)

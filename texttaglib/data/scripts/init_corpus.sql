@@ -4,6 +4,35 @@
  * https://github.com/letuananh/intsem.fx
  **/
 
+-----------------------------------------------------------
+-- Meta tables
+-- collections' meta
+CREATE TABLE meta (
+  'key' TEXT PRIMARY KEY NOT NULL, 
+  'value' TEXT
+);
+-- documents' meta
+CREATE TABLE meta_doc (
+  'name' TEXT NOT NULL,
+  'key' TEXT NOT NULL, 
+  'value' TEXT,
+  FOREIGN KEY('name') REFERENCES document('name') ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE ('name', 'key')
+);
+-- corpuses' meta
+CREATE TABLE meta_cor (
+  'name' TEXT NOT NULL,
+  'key' TEXT NOT NULL, 
+  'value' TEXT,
+  FOREIGN KEY('name') REFERENCES corpus('name') ON DELETE CASCADE ON UPDATE CASCADE,
+  UNIQUE ('name', 'key')
+);
+CREATE INDEX IF NOT EXISTS 'meta_|_key' ON 'meta' ('key');
+CREATE INDEX IF NOT EXISTS 'meta_doc_|_name' ON 'meta_doc' ('name');
+CREATE INDEX IF NOT EXISTS 'meta_doc_|_key' ON 'meta_doc' ('key');
+CREATE INDEX IF NOT EXISTS 'meta_cor_|_name' ON 'meta_cor' ('name');
+CREATE INDEX IF NOT EXISTS 'meta_cor_|_key' ON 'meta_cor' ('key');
+
 CREATE TABLE IF NOT EXISTS "corpus" (
     "ID" INTEGER PRIMARY KEY AUTOINCREMENT
     , "name" text NOT NULL UNIQUE
@@ -20,7 +49,8 @@ CREATE TABLE IF NOT EXISTS "document" (
 );
 
 CREATE TABLE IF NOT EXISTS "sentence" (
-    "ID" INTEGER PRIMARY KEY AUTOINCREMENT 
+    "ID" INTEGER PRIMARY KEY AUTOINCREMENT
+    , "ident" VARCHAR
     , "text" TEXT
     , "docID" INTEGER
     , "flag" INTEGER
@@ -83,6 +113,7 @@ CREATE INDEX IF NOT EXISTS "document_|_lang" ON "document" ("lang");
 CREATE INDEX IF NOT EXISTS "document_|_corpusID" ON "document" ("corpusID");
 -- sentence
 CREATE INDEX IF NOT EXISTS "sentence_|_text" ON "sentence" ("text");
+CREATE INDEX IF NOT EXISTS "sentence_|_ident" ON "sentence" ("ident");
 CREATE INDEX IF NOT EXISTS "sentence_|_docID" ON "sentence" ("docID");
 CREATE INDEX IF NOT EXISTS "sentence_|_flag" ON "sentence" ("flag");
 -- token
