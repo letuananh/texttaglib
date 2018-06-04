@@ -266,7 +266,7 @@ def read_stream(ttlig_stream):
 
 def read(ttlig_filepath):
     ''' Read TTLIG file '''
-    with chio.open(ttlig_filepath, mode='r') as infile:
+    with chio.open(ttlig_filepath, mode='rt') as infile:
         return read_stream(infile)
 
 
