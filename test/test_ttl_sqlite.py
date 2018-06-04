@@ -77,7 +77,7 @@ class TestTTLSQLite(unittest.TestCase):
 
     def test_read_json(self):
         docjson = os.path.join(TEST_DIR, 'data', 'test.json')
-        doc = ttl.Document.from_json_file(docjson)
+        doc = ttl.read_json(docjson)
         getLogger().debug(doc[0].to_json())
         self.assertTrue(len(doc))
 
@@ -123,7 +123,7 @@ class TestTTLSQLite(unittest.TestCase):
             self.assertEqual(doc1.ID, 1)
             # add sentences from JSON
             testdoc_path = os.path.join(TEST_DIR, 'data', 'test.json')
-            docjson = ttl.Document.from_json_file(testdoc_path)
+            docjson = ttl.read_json(testdoc_path)
             docjson[0].comment = 'mikeneko ga suki desu.'
             docjson[0].new_tag('I like calico cats.', tagtype='eng')
             docjson[0][0].new_tag('mi', tagtype='romaji')

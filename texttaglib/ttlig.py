@@ -68,6 +68,7 @@ class IGRow(DataObject):
     def __init__(self, text='', transliteration='', transcription='', morphtrans='', morphgloss='', wordgloss='', translation='', **kwargs):
         """
         """
+        super().__init__()
         self.text = text
         self.transliteration = transliteration
         self.transcription = transcription
@@ -89,6 +90,27 @@ class IGRow(DataObject):
             for ttl_token, furi_token in zip(ttl_sent, _tokens):
                 if furi_token.surface != furi_token.text():
                     ttl_token.new_tag(furi_token.surface, tagtype='furi')
+            if self.morphtrans:
+                _morphtokens = tokenize(self.morphtrans)
+                if len(_morphtokens) != len(ttl_sent):
+                    getLogger().warning("Morphophonemic transliteration line and tokens line are mismatched for sentence: {}".format(self.ident or self.ID or self.Id or self.id or self.text))
+                else:
+                    for t, m in zip(ttl_sent, _morphtokens):
+                        t.new_tag(m, tagtype='mtrans')
+            if self.morphgloss:
+                _glosstokens = tokenize(self.morphgloss)
+                if len(_glosstokens) != len(ttl_sent):
+                    getLogger().warning("morpheme-by-morpheme gloss and tokens lines are mismatched for sentence {}".format(self.ident or self.ID or self.Id or self.id or self.text))
+                else:
+                    for t, m in zip(ttl_sent, _glosstokens):
+                        t.new_tag(m, tagtype='mgloss')
+            if self.wordgloss:
+                _glosstokens = tokenize(self.wordgloss)
+                if len(_glosstokens) != len(ttl_sent):
+                    getLogger().warning("word-by-word gloss and tokens lines are mismatched for sentence {}".format(self.ident or self.ID or self.Id or self.id or self.text))
+                else:
+                    for t, m in zip(ttl_sent, _glosstokens):
+                        t.new_tag(m, tagtype='wgloss')
             pass
         return ttl_sent
 
@@ -128,7 +150,8 @@ class IGRow(DataObject):
 
 class TTLIG(object):
 
-    AUTO_LINES = ['transliteration', 'transcription', 'morphtrans', 'gloss']
+    # default lines
+    AUTO_LINES = ['tokens', 'morphtrans', 'gloss']
     MANUAL_TAG = '__manual__'
     AUTO_TAG = '__auto__'
     SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
@@ -171,7 +194,7 @@ class TTLIG(object):
                 line_dict[_tag] = _val
             return IGRow(**line_dict)
         else:
-            # just zip them
+            # explicit, just zip them
             if len(line_tags) != len(line_list):
                 raise ValueError("Mismatch number of lines for {} - {}".format(line_tags, line_list))
             return IGRow(**{k: v for k, v in zip(line_tags, line_list)})
@@ -333,18 +356,23 @@ class TTLTokensParser(object):
                 is_escaping = False
             elif c == self.escapechar:
                 # add the next character to current token
+                if not chars.peep():
+                    raise ValueError("Escape char ({}) cannot be the last character".format(self.escapechar))
+                elif chars.peep() and chars.peep().value not in (self.escapechar, self.delimiter):
+                    getLogger().warning("Escape char ({}) should not be used for normal character ({}). This can be a potential bug in the data.".format(self.escapechar, chars.peep().value))
                 is_escaping = True
             elif c == self.delimiter:
                 # flush
                 if current:
                     tokens.append(''.join(current))
                     current = []
+                # else -> ignore
             else:
                 current.append(c)
-                # is last character
-                if chars.peep() is None:
-                    tokens.append(''.join(current))
-                    current = []
+            # flush if current is the last character
+            if chars.peep() is None and current:
+                tokens.append(''.join(current))
+                current = []
         return tokens
 
     def parse_ruby(self, text):
@@ -353,6 +381,10 @@ class TTLTokensParser(object):
 
 
 DEFAULT_TTL_TOKEN_PARSER = TTLTokensParser()
+
+
+def tokenize(text):
+    return DEFAULT_TTL_TOKEN_PARSER.parse(text)
 
 
 def parse_ruby(text):

@@ -53,6 +53,10 @@ from texttaglib.ttlig import IGStreamReader, TTLTokensParser
 # -------------------------------------------------------------------------------
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
+JP_IMPLICIT = os.path.join(TEST_DIR, 'data', 'testig_jp_implicit.txt')
+JP_EXPLICIT = os.path.join(TEST_DIR, 'data', 'testig_jp_explicit.txt')
+JP_MANUAL = os.path.join(TEST_DIR, 'data', 'testig_jp_manual.txt')
+VN_EXPLICIT = os.path.join(TEST_DIR, 'data', 'testig_vi_explicit.txt')
 
 
 def getLogger():
@@ -62,6 +66,35 @@ def getLogger():
 # -------------------------------------------------------------------------------
 # Tests
 # -------------------------------------------------------------------------------
+
+class TestTokenizer(unittest.TestCase):
+
+    def test_tokenizer(self):
+        print("test multiple spaces for tokenizing")
+        sent = ttl.Sentence('It works.')
+        token_string = 'It       works   .    '
+        gloss_string = 'SUBJ     work    PUNC '
+        tokens = ttlig.tokenize(token_string)
+        glosses = ttlig.tokenize(gloss_string)
+        sent.tokens = tokens
+        for tk, gl in zip(sent.tokens, glosses):
+            tk.new_tag(gl, tagtype='gloss')
+        # verify imported information
+        actual = [(t.text, t.find('gloss').label) for t in sent]
+        expected = [('It', 'SUBJ'), ('works', 'work'), ('.', 'PUNC')]
+        self.assertEqual(expected, actual)
+
+    def test_tokenizing_special_chars(self):
+        ''' Only 2 characters - escapechar and delimiter '''
+        tokens = ttlig.tokenize('some\\ thing is a word .')
+        expected = ['some thing', 'is', 'a', 'word', '.']
+        self.assertEqual(tokens, expected)
+        # last char is special
+        tokens = ttlig.tokenize('some\\ thing is a word \\.')
+        expected = ['some thing', 'is', 'a', 'word', '.']
+        self.assertEqual(tokens, expected)
+        # last char is delimiter
+        self.assertRaises(Exception, lambda: ttlig.tokenize('this is wrong\\'))
 
 
 class TestFurigana(unittest.TestCase):
@@ -145,14 +178,14 @@ I have two cat-s.
         self.assertEqual(groups, expected)
 
     def test_read_header(self):
-        inpath = os.path.join(TEST_DIR, 'data', 'testig_vi_explicit.txt')
+        inpath = VN_EXPLICIT
         with chio.open(inpath) as infile:
             meta = ttlig.IGStreamReader._read_header(infile)
         expected = OrderedDict([('Language', 'Vietnamese'), ('Language code', 'vie'), ('Lines', 'orth translit gloss translat'), ('Author', 'Le Tuan Anh'), ('Date', 'May 25 2018')])
         self.assertEqual(meta, expected)
 
     def test_read_file(self):
-        inpath = os.path.join(TEST_DIR, 'data', 'testig_jp_manual.txt')
+        inpath = JP_MANUAL
         s1, s2 = ttlig.read(inpath)
         s1_json = {'text': '猫が好きです。', 'transliteration': 'neko ga suki desu .', 'transcription': '', 'morphtrans': '', 'morphgloss': 'cat SUBM likeable COP .', 'wordgloss': '', 'translation': 'I like cats.', 'ident': '01a_01', 'tokens': '{猫/ねこ} が {好/す}き です 。'}
         s2_json = {'text': '雨が降る。', 'transliteration': '', 'transcription': '', 'morphtrans': '', 'morphgloss': '', 'wordgloss': '', 'translation': 'It rains.', 'ident': '01a_02', 'tokens': '{雨/あめ} が {降/ふ}る 。'}
@@ -165,17 +198,16 @@ I have two cat-s.
         self.assertEqual(ttlig.make_ruby_html(s2.tokens), s2_furi)
 
     def test_ttlig_auto(self):
-        inpath = os.path.join(TEST_DIR, 'data', 'testig_jp_auto.txt')
+        inpath = JP_IMPLICIT
         sents = ttlig.read(inpath)
         s = sents[0]
         self.assertEqual(s.text, '猫が好きです。')
         self.assertEqual(s.tokens, '{猫/ねこ} が {好/す}き です 。')
-        self.assertEqual(s.transliteration, 'neko ga suki desu .')
         self.assertEqual(s.morphgloss, 'cat SUBM likeable COP .')
         self.assertEqual(s.translation, 'I like cats.')
 
     def test_ttlig_manual(self):
-        inpath = os.path.join(TEST_DIR, 'data', 'testig_jp_manual.txt')
+        inpath = JP_MANUAL
         s1, s2 = ttlig.read(inpath)
         s1_dict = {'text': '猫が好きです。', 'transliteration': 'neko ga suki desu .', 'transcription': '', 'morphtrans': '', 'morphgloss': 'cat SUBM likeable COP .', 'wordgloss': '', 'translation': 'I like cats.', 'ident': '01a_01', 'tokens': '{猫/ねこ} が {好/す}き です 。'}
         s2_dict = {'text': '雨が降る。', 'transliteration': '', 'transcription': '', 'morphtrans': '', 'morphgloss': '', 'wordgloss': '', 'translation': 'It rains.', 'ident': '01a_02', 'tokens': '{雨/あめ} が {降/ふ}る 。'}
@@ -200,6 +232,9 @@ I have two cat-s.
         expected = '<ruby><rb>友達</rb><rt>ともだち</rt></ruby> と <ruby><rb>巡</rb><rt>めぐ</rt></ruby>り<ruby><rb>会</rb><rt>あ</rt></ruby>っ た 。'
         actual = ttlig.make_ruby_html(igrow.tokens)
         self.assertEqual(expected, actual)
+
+    def test_parsing_aligned_text(self):
+        print("Testing TTLIG with multiple spaces")
 
 
 # -------------------------------------------------------------------------------
