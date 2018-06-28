@@ -232,6 +232,10 @@ I have two cat-s.
         expected = '<ruby><rb>友達</rb><rt>ともだち</rt></ruby> と <ruby><rb>巡</rb><rt>めぐ</rt></ruby>り<ruby><rb>会</rb><rt>あ</rt></ruby>っ た 。'
         actual = ttlig.make_ruby_html(igrow.tokens)
         self.assertEqual(expected, actual)
+        # test
+        igrow = ttlig.text_to_igrow('言い尽くす')
+        self.assertEqual(igrow.text, '言い尽くす')
+        self.assertEqual(igrow.tokens, '{言/い}い{尽/つ}くす')
 
     def test_parsing_aligned_text(self):
         print("Testing TTLIG with multiple spaces")

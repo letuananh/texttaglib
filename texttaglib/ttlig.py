@@ -156,7 +156,7 @@ class TTLIG(object):
     AUTO_TAG = '__auto__'
     SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
     KNOWN_META = ['language', 'language code', 'lines', 'author', 'date']
-    KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto']
+    KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto', 'type']
 
     def __init__(self, meta):
         self.meta = meta
@@ -403,21 +403,42 @@ def mctoken_to_furi(token):
     kanji = ''
     text = ''
     furi = ''
+    before = ''
+    expected = ''
     for item in edit_seq:
         if item.startswith('- '):
             # flush text if needed
+            if expected and kanji and furi:
+                ruby.append(RubyFrag(text=kanji, furi=furi))
+                kanji = ''
+                furi = ''
             if text:
                 ruby.append(text)
                 text = ''
             kanji += item[2:]
         elif item.startswith('+ '):
-            furi += item[2:]
+            if expected and item[2:] == expected:
+                # text += item[2:]
+                ruby.append(item[2:])
+                expected = ''
+            else:
+                furi += item[2:]
         elif item.startswith('  '):
-            if kanji:
-                ruby.append(RubyFrag(text=kanji, furi=furi))
-                kanji = ''
-                furi = ''
-            text += item[2:]
+            if before == '-' and not furi:
+                # shifting happened
+                expected = item[2:]
+                furi += item[2:]
+            else:
+                text += item[2:]
+                # flush if possible
+                if kanji and furi:
+                    ruby.append(RubyFrag(text=kanji, furi=furi))
+                    kanji = ''
+                    furi = ''
+                else:
+                    # possible error?
+                    pass
+        before = item[0]  # end for
     # flush final parts
     if text:
         ruby.append(text)
