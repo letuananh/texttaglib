@@ -42,6 +42,7 @@ import logging
 from collections import OrderedDict
 
 from chirptext import io as chio
+from chirptext import deko
 
 from texttaglib import ttl
 from texttaglib import ttlig
@@ -225,6 +226,15 @@ I have two cat-s.
         invalid_file = os.path.join(TEST_DIR, 'data', 'testig_invalid.txt')
         self.assertRaises(Exception, lambda: ttlig.read(invalid_file))
 
+    def test_make_furi_token(self):
+        s = deko.parse('友達')
+        f = ttlig.mctoken_to_furi(s[0])
+        self.assertEqual(f.to_code(), '{友達/ともだち}')
+        # half-width char
+        s = deko.parse('0')
+        f = ttlig.mctoken_to_furi(s[0])
+        self.assertEqual(f.to_code(), '0')
+
     def test_parsing(self):
         igrow = ttlig.text_to_igrow('友達と巡り会った。')
         self.assertEqual(igrow.text, '友達と巡り会った。')
@@ -236,6 +246,14 @@ I have two cat-s.
         igrow = ttlig.text_to_igrow('言い尽くす')
         self.assertEqual(igrow.text, '言い尽くす')
         self.assertEqual(igrow.tokens, '{言/い}い{尽/つ}くす')
+        # test more
+        igrow = ttlig.text_to_igrow('言いなさい')
+        self.assertEqual(igrow.text, '言いなさい')
+        self.assertEqual(igrow.tokens, '{言/い}い なさい')
+        # half-width char
+        igrow = ttlig.text_to_igrow('0時だ。')
+        self.assertEqual(igrow.text, '0時だ。')
+        self.assertEqual(igrow.tokens, '0 {時/じ} だ 。')
 
     def test_parsing_aligned_text(self):
         print("Testing TTLIG with multiple spaces")

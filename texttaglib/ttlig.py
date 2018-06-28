@@ -418,7 +418,10 @@ def mctoken_to_furi(token):
             kanji += item[2:]
         elif item.startswith('+ '):
             if expected and item[2:] == expected:
-                # text += item[2:]
+                if expected and kanji and furi:
+                    ruby.append(RubyFrag(text=kanji, furi=furi))
+                    kanji = ''
+                    furi = ''
                 ruby.append(item[2:])
                 expected = ''
             else:
@@ -440,10 +443,13 @@ def mctoken_to_furi(token):
                     pass
         before = item[0]  # end for
     # flush final parts
-    if text:
+    if kanji:
+        if furi:
+            ruby.append(RubyFrag(text=kanji, furi=furi))
+        else:
+            ruby.append(kanji)
+    elif text:
         ruby.append(text)
-    elif kanji:
-        ruby.append(RubyFrag(text=kanji, furi=furi))
     return ruby
 
 
