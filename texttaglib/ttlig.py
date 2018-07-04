@@ -225,8 +225,8 @@ class IGStreamReader(object):
                 continue
             m = IGStreamReader.META_LINE.match(line)
             if m:
-                key = m['key'].strip()
-                value = m['value']
+                key = m.group('key').strip()
+                value = m.group('value')
                 if key in meta:
                     getLogger().warning("Key {} is duplicated in the header".format(key))
                 meta[key] = value

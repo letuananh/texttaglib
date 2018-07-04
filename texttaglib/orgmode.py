@@ -61,7 +61,7 @@ RE_META = re.compile('- (?P<tag>.+) :: (?P<value>.+)$')
 def _match_title(line):
     m = RE_TITLE.match(line)
     if m:
-        return m['title']
+        return m.group('title')
     else:
         return None
 
@@ -69,7 +69,7 @@ def _match_title(line):
 def _match_meta(line):
     m = RE_META.match(line)
     if m:
-        return (m['tag'], m['value'])
+        return (m.group('tag'), m.group('value'))
     else:
         return None
 
