@@ -114,6 +114,38 @@ class IGRow(DataObject):
             pass
         return ttl_sent
 
+    def to_expex(self, default_ident=''):
+        lines = []
+        sent_ident = self.ident if self.ident else default_ident
+        lines.append('\\ex \\label{{{}}}'.format(sent_ident))
+        lines.append('\\begingl[aboveglftskip=0pt]')
+        tags = ['gla', 'glb', 'glc']
+        # process tokens and gloss
+        glosses = []
+        lengths = []
+        if self.tokens:
+            lengths.append(make_expex_gloss(self.tokens, glosses, tags.pop(0)))
+        if self.morphtrans:
+            lengths.append(make_expex_gloss(self.morphtrans, glosses, tags.pop(0)))
+        if self.morphgloss:
+            lengths.append(make_expex_gloss(self.morphgloss, glosses, tags.pop(0)))
+        if self.concept:
+            if tags:
+                lengths.append(make_expex_gloss(self.concept, glosses, tags.pop(0)))
+            else:
+                getLogger().warning("There are too many gloss lines in sentence {}. {}".format(sent_ident, self.text))
+        # ensure that number of tokens are the same
+        if len(lengths) > 1:
+            for line_len in lengths[1:]:
+                if line_len != lengths[0]:
+                    getLogger().warning("Inconsistent tokens and morphgloss for sentence {}. {} ({} v.s {})".format(sent_ident, self.text, line_len, lengths[0]))
+                    break
+        lines.extend(glosses)
+        lines.append('\\glft {}//'.format(self.text))
+        lines.append('\\endgl')
+        lines.append('\\xe')
+        return '\n'.join(lines)
+
     # Matrix alias
     @property
     def orth(self):
@@ -146,6 +178,13 @@ class IGRow(DataObject):
     @gloss.setter
     def gloss(self, value):
         self.morphgloss = value
+
+
+def make_expex_gloss(raw, lines, gloss_tag):
+    _tokens = tokenize(raw)
+    lines.append('\\{} {} //'.format(gloss_tag, ' '.join(_tokens)))
+    return len(_tokens)
+
 
 
 class TTLIG(object):

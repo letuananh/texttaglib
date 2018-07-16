@@ -91,12 +91,6 @@ def make_db(cli, args):
     print("Done!")
 
 
-def make_expex_gloss(raw, lines, gloss_tag):
-    _tokens = ttlig.tokenize(raw)
-    lines.append('\\{} {} //'.format(gloss_tag, ' '.join(_tokens)))
-    return len(_tokens)
-
-
 def process_tig(cli, args):
     ''' Convert TTLIG file to TTL format '''
     if args.format == FORMAT_TTL:
@@ -117,36 +111,7 @@ def process_tig(cli, args):
         with chio.open(args.ttlig) as infile:
             for idx, sent in enumerate(ttlig.read_stream_iter(infile)):
                 sc += 1
-                lines = []
-                sent_ident = sent.ident if sent.ident else idx + 1
-                lines.append('\\ex \\label{{{}}}'.format(sent_ident))
-                lines.append('\\begingl[aboveglftskip=0pt]')
-                tags = ['gla', 'glb', 'glc']
-                # process tokens and gloss
-                glosses = []
-                lengths = []
-                if sent.tokens:
-                    lengths.append(make_expex_gloss(sent.tokens, glosses, tags.pop(0)))
-                if sent.morphtrans:
-                    lengths.append(make_expex_gloss(sent.morphtrans, glosses, tags.pop(0)))
-                if sent.morphgloss:
-                    lengths.append(make_expex_gloss(sent.morphgloss, glosses, tags.pop(0)))
-                if sent.concept:
-                    if tags:
-                        lengths.append(make_expex_gloss(sent.concept, glosses, tags.pop(0)))
-                    else:
-                        cli.logger.warning("There are too many gloss lines in sentence {}. {}".format(sent_ident, sent.text))
-                # ensure that number of tokens are the same
-                if len(lengths) > 1:
-                    for line_len in lengths[1:]:
-                        if line_len != lengths[0]:
-                            cli.logger.warning("Inconsistent tokens and morphgloss for sentence {}. {} ({} v.s {})".format(sent_ident, sent.text, line_len, lengths[0]))
-                            break
-                lines.extend(glosses)
-                lines.append('\\glft {}//'.format(sent.text))
-                lines.append('\\endgl')
-                lines.append('\\xe')
-                output.print('\n'.join(lines))
+                output.print(sent.to_expex(default_ident=idx + 1))
                 output.print()
                 output.print()
                 output.print()
