@@ -156,7 +156,7 @@ class TTLIG(object):
     AUTO_TAG = '__auto__'
     SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
     KNOWN_META = ['language', 'language code', 'lines', 'author', 'date']
-    KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto', 'type']
+    KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'concept', 'font', 'font-global', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto', 'type']
 
     def __init__(self, meta):
         self.meta = meta
@@ -190,7 +190,7 @@ class TTLIG(object):
                 _tag = line[:tag_idx].strip()
                 _val = line[tag_idx + 1:].strip()
                 if _tag.lower() not in TTLIG.KNOWN_LABELS:
-                    getLogger().warning("Unknown tag was used {}: {}".format(_tag, _val))
+                    getLogger().warning("Unknown tag was used ({}): {}".format(_tag, _val))
                 line_dict[_tag] = _val
             return IGRow(**line_dict)
         else:

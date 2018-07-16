@@ -52,6 +52,10 @@ def getLogger():
     return logging.getLogger(__name__)
 
 
+FORMAT_TTL = 'ttl'
+FORMAT_EXPEX = 'expex'
+
+
 # ----------------------------------------------------------------------
 # Functions
 # ----------------------------------------------------------------------
@@ -87,19 +91,67 @@ def make_db(cli, args):
     print("Done!")
 
 
-def make_ttl(cli, args):
+def make_expex_gloss(raw, lines, gloss_tag):
+    _tokens = ttlig.tokenize(raw)
+    lines.append('\\{} {} //'.format(gloss_tag, ' '.join(_tokens)))
+    return len(_tokens)
+
+
+def process_tig(cli, args):
     ''' Convert TTLIG file to TTL format '''
-    sc = 0
-    ttl_writer = ttl.TxtWriter.from_path(args.output) if args.output else None
-    with chio.open(args.ttlig) as infile:
-        for sent in ttlig.read_stream_iter(infile):
-            sc += 1
-            if ttl_writer is not None:
-                ttl_sent = sent.to_ttl()
-                ttl_writer.write_sent(ttl_sent)
-    if ttl_writer is not None:
-        print("Output file: {}".format(args.output))
-    print("Processed {} sentence(s).".format(sc))
+    if args.format == FORMAT_TTL:
+        sc = 0
+        ttl_writer = ttl.TxtWriter.from_path(args.output) if args.output else None
+        with chio.open(args.ttlig) as infile:
+            for sent in ttlig.read_stream_iter(infile):
+                sc += 1
+                if ttl_writer is not None:
+                    ttl_sent = sent.to_ttl()
+                    ttl_writer.write_sent(ttl_sent)
+        if ttl_writer is not None:
+            print("Output file: {}".format(args.output))
+        print("Processed {} sentence(s).".format(sc))
+    elif args.format == FORMAT_EXPEX:
+        sc = 0
+        output = TextReport(args.output)
+        with chio.open(args.ttlig) as infile:
+            for idx, sent in enumerate(ttlig.read_stream_iter(infile)):
+                sc += 1
+                lines = []
+                sent_ident = sent.ident if sent.ident else idx + 1
+                lines.append('\\ex \\label{{{}}}'.format(sent_ident))
+                lines.append('\\begingl[aboveglftskip=0pt]')
+                tags = ['gla', 'glb', 'glc']
+                # process tokens and gloss
+                glosses = []
+                lengths = []
+                if sent.tokens:
+                    lengths.append(make_expex_gloss(sent.tokens, glosses, tags.pop(0)))
+                if sent.morphtrans:
+                    lengths.append(make_expex_gloss(sent.morphtrans, glosses, tags.pop(0)))
+                if sent.morphgloss:
+                    lengths.append(make_expex_gloss(sent.morphgloss, glosses, tags.pop(0)))
+                if sent.concept:
+                    if tags:
+                        lengths.append(make_expex_gloss(sent.concept, glosses, tags.pop(0)))
+                    else:
+                        cli.logger.warning("There are too many gloss lines in sentence {}. {}".format(sent_ident, sent.text))
+                # ensure that number of tokens are the same
+                if len(lengths) > 1:
+                    for line_len in lengths[1:]:
+                        if line_len != lengths[0]:
+                            cli.logger.warning("Inconsistent tokens and morphgloss for sentence {}. {} ({} v.s {})".format(sent_ident, sent.text, line_len, lengths[0]))
+                            break
+                lines.extend(glosses)
+                lines.append('\\glft {}//'.format(sent.text))
+                lines.append('\\endgl')
+                lines.append('\\xe')
+                output.print('\n'.join(lines))
+                output.print()
+                output.print()
+                output.print()
+    else:
+        print("Format {} is not supported".format(args.format))
 
 
 def jp_line_proc(line, iglines):
@@ -192,9 +244,10 @@ def main():
     task.add_argument('doc', help='Document name', default=None)
     task.add_argument('-k', '--topk', help='Only select the top k frequent elements', default=None, type=int)
 
-    task = app.add_task('ig', func=make_ttl)
+    task = app.add_task('ig', func=process_tig)
     task.add_argument('ttlig', help='TTLIG file')
     task.add_argument('-o', '--output', help='Output TTL file')
+    task.add_argument('-f', '--format', help='Output format', choices=[FORMAT_EXPEX, FORMAT_TTL], default=FORMAT_TTL)
 
     task = app.add_task('org', func=org_to_ttlig)
     task.add_argument('-f', '--orgfile', help='ORG file')
