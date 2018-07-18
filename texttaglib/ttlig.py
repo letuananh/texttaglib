@@ -195,7 +195,13 @@ class TTLIG(object):
     AUTO_TAG = '__auto__'
     SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
     KNOWN_META = ['language', 'language code', 'lines', 'author', 'date']
-    KNOWN_LABELS = AUTO_LINES + ['ident', 'comment', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'concept', 'font', 'font-global', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'tokens', 'tsfrom', 'tsto', 'type']
+    ANNOTATIONS = ['flag', 'font', 'font-global']
+    SPECIAL_FEATURES = ['furigana', 'furi']
+    CORPUS_MANAGEMENT = ['comment', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'type']
+    SEMANTICS = ['concept', 'tsfrom', 'tsto']
+    INTERLINEAR_GLOSS = ['ident', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'tokens']
+    KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SEMANTICS + INTERLINEAR_GLOSS
+    # [TODO] Add examples & description for each of these labels
 
     def __init__(self, meta):
         self.meta = meta
@@ -249,7 +255,7 @@ class TTLIG(object):
 
 class IGStreamReader(object):
 
-    META_LINE = re.compile('(?P<key>[\w\s]+):\s*(?P<value>.*)')
+    META_LINE = re.compile(r'(?P<key>[\w\s]+):\s*(?P<value>.*)')
 
     @staticmethod
     def _read_header(ig_stream):
@@ -309,13 +315,13 @@ def read(ttlig_filepath):
         return read_stream(infile)
 
 
-FURIMAP = re.compile('\{(?P<text>\w+)/(?P<furi>\w+)\}')
+FURIMAP = re.compile(r'\{(?P<text>\w+)/(?P<furi>\w+)\}')
 
 
 class RubyToken(DataObject):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.groups is None:
+        if 'groups' not in kwargs:
             self.groups = []
 
     def append(self, group):
