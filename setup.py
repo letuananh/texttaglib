@@ -33,10 +33,7 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 ########################################################################
 
 import io
-import os
 from setuptools import setup
-
-import texttaglib
 
 
 ########################################################################
@@ -51,26 +48,30 @@ def read(*filenames, **kwargs):
     return sep.join(buf)
 
 
-readme_file = 'README.rst' if os.path.isfile('README.rst') else 'README.md'
+readme_file = 'README.md'
 print("README file: {}".format(readme_file))
 long_description = read(readme_file)
+pkg_info = {}
+exec(read('texttaglib/__version__.py'), pkg_info)
+
 
 setup(
     name='texttaglib',
-    version=texttaglib.__version__,
-    url=texttaglib.__url__,
+    version=pkg_info['__version__'],
+    url=pkg_info['__url__'],
     project_urls={
         "Bug Tracker": "https://github.com/letuananh/texttaglib/issues",
         "Source Code": "https://github.com/letuananh/texttaglib/"
     },
     keywords="nlp",
-    license=texttaglib.__license__,
-    author=texttaglib.__author__,
+    license=pkg_info['__license__'],
+    author=pkg_info['__author__'],
     tests_require=['chirptext >= 0.1a11', 'puchikarui'],
     install_requires=['chirptext >= 0.1a11', 'puchikarui'],
-    author_email=texttaglib.__email__,
-    description=texttaglib.__description__,
+    author_email=pkg_info['__email__'],
+    description=pkg_info['__description__'],
     long_description=long_description,
+    long_description_content_type='text/markdown',
     packages=['texttaglib',
               'texttaglib.data'],
     package_data={'texttaglib': ['data/*.sql', 'data/*.gz']},
@@ -80,7 +81,7 @@ setup(
     # Reference: https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=['Programming Language :: Python',
                  'Development Status :: 2 - Pre-Alpha',
-                 'License :: OSI Approved :: {}'.format(texttaglib.__license__),
+                 'License :: OSI Approved :: {}'.format(pkg_info['__license__']),
                  'Environment :: Plugins',
                  'Intended Audience :: Education',
                  'Intended Audience :: Science/Research',

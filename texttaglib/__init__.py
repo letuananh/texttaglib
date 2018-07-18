@@ -5,16 +5,8 @@ texttaglib - a Python library for managing and annotating textual corpus using T
 
 Latest version can be found at https://github.com/letuananh/texttaglib
 
-References:
-    Python documentation:
-        https://docs.python.org/
-    PEP 0008 - Style Guide for Python Code
-        https://www.python.org/dev/peps/pep-0008/
-    PEP 0257 - Python Docstring Conventions:
-        https://www.python.org/dev/peps/pep-0257/
-
-@author: Le Tuan Anh <tuananh.ke@gmail.com>
-@license: MIT
+:copyright: (c) 2018 Le Tuan Anh <tuananh.ke@gmail.com>
+:license: MIT, see LICENSE for more details.
 '''
 
 # Copyright (c) 2018, Le Tuan Anh <tuananh.ke@gmail.com>
@@ -37,26 +29,15 @@ References:
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__author__ = "Le Tuan Anh"
-__email__ = "tuananh.ke@gmail.com"
-__copyright__ = "Copyright 2018, texttaglib"
-__credits__ = []
-__license__ = "MIT License"
-__description__ = "Python library for managing and annotating textual corpus using TextTagLib (TTL) format"
-__url__ = "https://github.com/letuananh/texttaglib"
-__maintainer__ = "Le Tuan Anh"
-__version_major__ = "0.1"
-__version__ = "{}a3".format(__version_major__)
-__version_long__ = "{} - Alpha".format(__version_major__)
-__status__ = "Prototype"
 
 ########################################################################
 
-import logging
+from .__version__ import __author__, __email__, __copyright__, __maintainer__
+from .__version__ import __credits__, __license__, __description__, __url__
+from .__version__ import __version_major__, __version_long__, __version__, __status__
 
-try:
-    from chirptext import texttaglib as ttl
-    from texttaglib.sqlite import TTLSQLite
-    __all__ = ['ttl', 'TTLSQLite']
-except:
-    logging.getLogger(__name__).exception("texttaglib package was not loaded properly")
+from chirptext import texttaglib as ttl
+from texttaglib.sqlite import TTLSQLite
+
+
+__all__ = ['ttl', 'TTLSQLite']
