@@ -38,7 +38,7 @@ from difflib import ndiff
 from collections import OrderedDict
 
 from chirptext import DataObject, piter
-from chirptext import io as chio
+from chirptext import chio
 from chirptext.deko import parse
 
 from texttaglib import ttl

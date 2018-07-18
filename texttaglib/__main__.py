@@ -36,7 +36,7 @@ import logging
 from lxml import etree
 
 from chirptext import TextReport, FileHelper
-from chirptext import io as chio
+from chirptext import chio
 from chirptext.cli import CLIApp, setup_logging
 
 from texttaglib import ttl, TTLSQLite, ttlig, orgmode

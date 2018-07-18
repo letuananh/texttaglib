@@ -39,7 +39,7 @@ import re
 import os
 import logging
 
-from chirptext import io as chio
+from chirptext import chio
 
 
 # ----------------------------------------------------------------------
