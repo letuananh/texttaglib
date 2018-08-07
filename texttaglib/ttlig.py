@@ -180,8 +180,12 @@ class IGRow(DataObject):
         self.morphgloss = value
 
 
+LATEX_SPECIAL_CHARS = P = re.compile('([%${_#&}])')
+
+
 def escape_latex(text):
-    return text.replace('\\', '\\textbackslash ').replace('_', '\\_')
+    text = LATEX_SPECIAL_CHARS.sub(r"\\\g<1>", text.replace('\\', '\\textbackslash '))
+    return text.replace('<', '\\textless').replace('>', '\\textgreater')
 
 
 def make_expex_gloss(raw, lines, gloss_tag):
