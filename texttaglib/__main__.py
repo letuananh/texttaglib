@@ -108,6 +108,10 @@ def process_tig(cli, args):
     elif args.format == FORMAT_EXPEX:
         sc = 0
         output = TextReport(args.output)
+        output.print("\\newcommand{\\lit}[1]{``#1''}     %%% literal meaning")
+        output.print()
+        output.print()
+        output.print()
         with chio.open(args.ttlig) as infile:
             for idx, sent in enumerate(ttlig.read_stream_iter(infile)):
                 sc += 1

@@ -141,7 +141,7 @@ class IGRow(DataObject):
                     getLogger().warning("Inconsistent tokens and morphgloss for sentence {}. {} ({} v.s {})".format(sent_ident, self.text, line_len, lengths[0]))
                     break
         lines.extend(glosses)
-        lines.append('\\glft {}//'.format(self.text))
+        lines.append('\\glft \lit{{{}}}//'.format(escape_latex(self.text)))
         lines.append('\\endgl')
         lines.append('\\xe')
         return '\n'.join(lines)
@@ -180,11 +180,14 @@ class IGRow(DataObject):
         self.morphgloss = value
 
 
+def escape_latex(text):
+    return text.replace('\\', '\\textbackslash ').replace('_', '\\_')
+
+
 def make_expex_gloss(raw, lines, gloss_tag):
     _tokens = tokenize(raw)
-    lines.append('\\{} {} //'.format(gloss_tag, ' '.join(_tokens)))
+    lines.append('\\{} {} //'.format(gloss_tag, ' '.join((escape_latex(t) for t in _tokens))))
     return len(_tokens)
-
 
 
 class TTLIG(object):
