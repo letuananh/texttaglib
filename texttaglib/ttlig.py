@@ -185,7 +185,8 @@ LATEX_SPECIAL_CHARS = P = re.compile('([%${_#&}])')
 
 def escape_latex(text):
     text = LATEX_SPECIAL_CHARS.sub(r"\\\g<1>", text.replace('\\', '\\textbackslash '))
-    return text.replace('<', '\\textless').replace('>', '\\textgreater')
+    text = text.replace('<', '\\textless ').replace('>', '\\textgreater ')
+    return text if text.strip() else '{}'
 
 
 def make_expex_gloss(raw, lines, gloss_tag):
@@ -240,7 +241,7 @@ class TTLIG(object):
                 if tag_idx == -1:
                     raise ValueError("Invalid line (no tag found) -> {}".format(line))
                 _tag = line[:tag_idx].strip()
-                _val = line[tag_idx + 1:].strip()
+                _val = line[tag_idx + 1:].lstrip().rstrip('\r\n')
                 if _tag.lower() not in TTLIG.KNOWN_LABELS:
                     getLogger().warning("Unknown tag was used ({}): {}".format(_tag, _val))
                 line_dict[_tag] = _val
@@ -295,7 +296,7 @@ class IGStreamReader(object):
         lines = piter(ig_stream)
         current = []
         for line_raw in lines:
-            line = line_raw.strip()
+            line = line_raw.rstrip('\r\n')
             if not line.startswith('#') and line:
                 # not a comment or an empty line
                 current.append(line)
