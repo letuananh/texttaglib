@@ -519,3 +519,41 @@ def text_to_igrow(txt):
         tokens.append(r.to_code())
     igrow = IGRow(text=txt, tokens=' '.join(tokens), pos=' '.join(pos))
     return igrow
+
+
+class Transcript:
+    def __init__(self):
+        """
+        Represent a transcript of a recording
+        """
+        self.sents = []  # utterances sorted by starting time
+
+    def insert(self, text, start, end=None, duration=None, tier=None):
+        ig = IGRow(text=text, ts_start=float(start))
+        if end is not None:
+            ig.ts_end = float(end)
+        else:
+            if duration is not None:
+                ig.ts_end = start + duration
+        if duration is not None:
+            ig.ts_duration = float(duration)
+        else:
+            if end is not None:
+                ig.ts_duration = end - start
+        if tier is not None:
+            ig.tier = tier
+        self.sents.append(ig)
+
+    def timeline(self):
+        return sorted(self.sents, key=lambda sent: (sent.ts_start, sent.ts_end, sent.ts_duration))
+
+    @staticmethod
+    def read_elan(file_path, *args, **kwargs):
+        transcript = Transcript()
+        for row in chio.read_tsv_iter(file_path, *args, **kwargs):
+            if len(row) != 5:
+                print(f"WARNING: Invalid line {row}")
+                continue
+            tier, start_sec, end_sec, dur_sec, text = row
+            transcript.insert(text, start_sec, end=end_sec, duration = dur_sec, tier=tier)
+        return transcript

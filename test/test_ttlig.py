@@ -47,6 +47,8 @@ from chirptext import deko
 from texttaglib import ttl
 from texttaglib import ttlig
 from texttaglib.ttlig import IGStreamReader, TTLTokensParser
+from texttaglib.ttlig import Transcript
+from texttaglib.vtt import sec2ts
 
 
 # -------------------------------------------------------------------------------
@@ -58,6 +60,8 @@ JP_IMPLICIT = os.path.join(TEST_DIR, 'data', 'testig_jp_implicit.txt')
 JP_EXPLICIT = os.path.join(TEST_DIR, 'data', 'testig_jp_explicit.txt')
 JP_MANUAL = os.path.join(TEST_DIR, 'data', 'testig_jp_manual.txt')
 VN_EXPLICIT = os.path.join(TEST_DIR, 'data', 'testig_vi_explicit.txt')
+TRANSCRIPT_FILE = os.path.join(TEST_DIR, 'data', 'test_transcript.tab')
+TRANSCRIPT_EXPECTED_FILE = os.path.join(TEST_DIR, 'data', 'test_transcript.human.tab')
 
 
 def getLogger():
@@ -258,6 +262,17 @@ I have two cat-s.
     def test_parsing_aligned_text(self):
         print("Testing TTLIG with multiple spaces")
 
+
+class TestTranscript(unittest.TestCase):
+
+    def test_read_transcript(self):
+        print("Test reading an ELAN transcript output file")
+        transcript = Transcript.read_elan(TRANSCRIPT_FILE)
+        timeline = transcript.timeline()  # sort by time
+        human_readble = [[x.tier, sec2ts(x.ts_start), sec2ts(x.ts_end), sec2ts(x.ts_duration), x.text] for x in timeline]
+        getLogger().debug('Human readble format:\n' + '\n'.join('\t'.join(x) for x in human_readble))
+        expected = chio.read_tsv(TRANSCRIPT_EXPECTED_FILE)
+        self.assertEqual(human_readble, expected)
 
 # -------------------------------------------------------------------------------
 # MAIN
