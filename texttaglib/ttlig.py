@@ -34,6 +34,7 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 import re
 import logging
 from difflib import ndiff
+from collections import defaultdict as dd
 
 from collections import OrderedDict
 
@@ -179,6 +180,20 @@ class IGRow(DataObject):
     def gloss(self, value):
         self.morphgloss = value
 
+    @property
+    def tsduration(self):
+        if self.tsfrom is None or self.tsto is None:
+            return None
+        else:
+            return self.tsto - self.tsfrom
+        
+    def overlap(self, other):
+        ''' Calculate overlap score between this utterance and another
+        Score = 0 means adjacent, score > 0 means overlapped, score < 0 means no overlap (the distance between the two)
+        '''
+        return min(self.tsto, other.tsto) - max(self.tsfrom, other.tsfrom)
+
+
 
 LATEX_SPECIAL_CHARS = P = re.compile('([%${_#&}])')
 
@@ -206,9 +221,10 @@ class TTLIG(object):
     ANNOTATIONS = ['flag', 'font', 'font-global']
     SPECIAL_FEATURES = ['furigana', 'furi']
     CORPUS_MANAGEMENT = ['comment', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'type']
-    SEMANTICS = ['concept', 'tsfrom', 'tsto']
+    SEMANTICS = ['concept']
+    DISCOURSE = ['tsfrom', 'tsto', 'speaker']
     INTERLINEAR_GLOSS = ['ident', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'tokens']
-    KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SEMANTICS + INTERLINEAR_GLOSS
+    KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SEMANTICS + INTERLINEAR_GLOSS + DISCOURSE
     # [TODO] Add examples & description for each of these labels
 
     def __init__(self, meta):
@@ -526,27 +542,75 @@ class Transcript:
         """
         Represent a transcript of a recording
         """
-        self.sents = []  # utterances sorted by starting time
+        self.__sents = []  # utterances sorted by starting time
+        self.__tiers = dd(list)
 
-    def insert(self, text, start, end=None, duration=None, tier=None):
-        ig = IGRow(text=text, ts_start=float(start))
-        if end is not None:
-            ig.ts_end = float(end)
-        else:
-            if duration is not None:
-                ig.ts_end = start + duration
-        if duration is not None:
-            ig.ts_duration = float(duration)
-        else:
-            if end is not None:
-                ig.ts_duration = end - start
+    def insert(self, text, tsfrom, tsto=None, tsduration=None, tier=None):
+        ig = IGRow(text=text, tsfrom=float(tsfrom))
+        if tsto is not None:
+            ig.tsto = float(tsto)
+            if tsduration is not None:
+                expected = round(ig.tsduration, 3)
+                if expected != round(float(tsduration), 3):
+                    raise ValueError("Inconsistent values for tsfrom ({}), tsto ({}), and tsduration ({}). Expected tsduration=({})".format(tsfrom, tsto, tsduration, expected))
+        elif tsduration is not None:
+            ig.tsto = ig.tsfrom + float(tsduration)
         if tier is not None:
             ig.tier = tier
-        self.sents.append(ig)
+        self.__tiers[ig.tier].append(ig)
+        self.__sents.append(ig)
 
-    def timeline(self):
-        return sorted(self.sents, key=lambda sent: (sent.ts_start, sent.ts_end, sent.ts_duration))
+    def tier_names(self):
+        return tuple(self.__tiers.keys())
 
+    def tier(self, tier_name):
+        return self.__tiers[tier_name] if tier_name in self.__tiers else None
+
+    def __getitem__(self, idx):
+        return self.__sents[idx]
+
+    def sort(self):
+        self.__sents.sort(key=lambda sent: (sent.tsfrom, sent.tsto))
+        for tier in self.__tiers.values():
+            tier.sort(key=lambda sent: (sent.tsfrom, sent.tsto))
+        return self.__sents
+
+    def tag_language(self, utterance_tier_name, language_tier_name, default_value=''):
+        ''' Use text value from language_tier as language to tag utterances 
+            default_value -- Default language value (defaulted to an empty string)
+        '''
+        utterance_tier = self.__tiers[utterance_tier_name]
+        language_tier = self.__tiers[language_tier_name]
+        for u in utterance_tier:
+            candidates = []
+            for l in language_tier:
+                score = u.overlap(l)
+                if score > 0:
+                    candidates.append((score, l))
+                if l.tsfrom > u.tsto:
+                    break
+            if candidates:
+                u.language = max(candidates, key=lambda x: x[0])[1].text.strip().replace(':', '__')
+            elif not u.language:
+                u.language = default_value
+        return utterance_tier
+
+    def join_utterances(self, tier_name=None):
+        ''' Group adjecent utterances together. Return a list of joined utterance lists '''
+        _timeline = self.__sents if tier_name is None else self.__tiers[tier_name]
+        _utterances = []
+        _current = []  # current group
+        for idx, s in enumerate(_timeline):
+            if idx == 0 or s.tsfrom == _timeline[idx - 1].tsto:
+                _current.append(s)
+            else:
+                # flush
+                _utterances.append(_current)
+                _current = [s]
+        if _current:
+            _utterances.append(_current)
+        return _utterances
+    
     @staticmethod
     def read_elan(file_path, *args, **kwargs):
         transcript = Transcript()
@@ -555,5 +619,5 @@ class Transcript:
                 print(f"WARNING: Invalid line {row}")
                 continue
             tier, start_sec, end_sec, dur_sec, text = row
-            transcript.insert(text, start_sec, end=end_sec, duration = dur_sec, tier=tier)
+            transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier)
         return transcript
