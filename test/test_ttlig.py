@@ -268,8 +268,8 @@ class TestTranscript(unittest.TestCase):
     def test_read_transcript(self):
         print("Test reading an ELAN transcript output file")
         transcript = Transcript.read_elan(TRANSCRIPT_FILE)
-        timeline = transcript.timeline()  # sort by time
-        human_readble = [[x.tier, sec2ts(x.ts_start), sec2ts(x.ts_end), sec2ts(x.ts_duration), x.text] for x in timeline]
+        timeline = transcript.sort()  # sort by time
+        human_readble = [[x.tier, sec2ts(x.tsfrom), sec2ts(x.tsto), sec2ts(x.tsduration), x.text] for x in timeline]
         getLogger().debug('Human readble format:\n' + '\n'.join('\t'.join(x) for x in human_readble))
         expected = chio.read_tsv(TRANSCRIPT_EXPECTED_FILE)
         self.assertEqual(human_readble, expected)
