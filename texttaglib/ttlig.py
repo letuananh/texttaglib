@@ -537,7 +537,7 @@ def text_to_igrow(txt):
     return igrow
 
 
-class Transcript:
+class Transcript(DataObject):
     def __init__(self):
         """
         Represent a transcript of a recording
@@ -545,8 +545,8 @@ class Transcript:
         self.__sents = []  # utterances sorted by starting time
         self.__tiers = dd(list)
 
-    def insert(self, text, tsfrom, tsto=None, tsduration=None, tier=None):
-        ig = IGRow(text=text, tsfrom=float(tsfrom))
+    def insert(self, text, tsfrom, tsto=None, tsduration=None, tier=None, **kwargs):
+        ig = IGRow(text=text, tsfrom=float(tsfrom), **kwargs)
         if tsto is not None:
             ig.tsto = float(tsto)
             if tsduration is not None:
@@ -566,6 +566,9 @@ class Transcript:
     def tier(self, tier_name):
         return self.__tiers[tier_name] if tier_name in self.__tiers else None
 
+    def __len__(self):
+        return len(self.__sents)
+    
     def __getitem__(self, idx):
         return self.__sents[idx]
 
@@ -615,9 +618,13 @@ class Transcript:
     def read_elan(file_path, *args, **kwargs):
         transcript = Transcript()
         for row in chio.read_tsv_iter(file_path, *args, **kwargs):
-            if len(row) != 5:
+            if len(row) == 5:
+                tier, start_sec, end_sec, dur_sec, text = row
+                transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier)
+            elif len(row) == 6:
+                tier, speaker, start_sec, end_sec, dur_sec, text = row
+                transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier, speaker=speaker)
+            else:
                 print(f"WARNING: Invalid line {row}")
                 continue
-            tier, start_sec, end_sec, dur_sec, text = row
-            transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier)
         return transcript
