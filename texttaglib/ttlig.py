@@ -35,8 +35,8 @@ import re
 import logging
 from difflib import ndiff
 from collections import defaultdict as dd
-
 from collections import OrderedDict
+import warnings
 
 from chirptext import DataObject, piter
 from chirptext import chio
@@ -375,6 +375,62 @@ class RubyToken(DataObject):
     def __str__(self):
         return self.text()
 
+    @staticmethod
+    def from_furi(surface, kana):
+        edit_seq = ndiff(surface, kana)
+        ruby = RubyToken(surface=surface)
+        kanji = ''
+        text = ''
+        furi = ''
+        before = ''
+        expected = ''
+        for item in edit_seq:
+            if item.startswith('- '):
+                # flush text if needed
+                if expected and kanji and furi:
+                    ruby.append(RubyFrag(text=kanji, furi=furi))
+                    kanji = ''
+                    furi = ''
+                if text:
+                    ruby.append(text)
+                    text = ''
+                kanji += item[2:]
+            elif item.startswith('+ '):
+                if expected and item[2:] == expected:
+                    if expected and kanji and furi:
+                        ruby.append(RubyFrag(text=kanji, furi=furi))
+                        kanji = ''
+                        furi = ''
+                    ruby.append(item[2:])
+                    expected = ''
+                else:
+                    furi += item[2:]
+            elif item.startswith('  '):
+                if before == '-' and not furi:
+                    # shifting happened
+                    expected = item[2:]
+                    furi += item[2:]
+                else:
+                    text += item[2:]
+                    # flush if possible
+                    if kanji and furi:
+                        ruby.append(RubyFrag(text=kanji, furi=furi))
+                        kanji = ''
+                        furi = ''
+                    else:
+                        # possible error?
+                        pass
+            before = item[0]  # end for
+        # flush final parts
+        if kanji:
+            if furi:
+                ruby.append(RubyFrag(text=kanji, furi=furi))
+            else:
+                ruby.append(kanji)
+        elif text:
+            ruby.append(text)
+        return ruby
+
 
 class RubyFrag(DataObject):
     def __init__(self, text, furi, **kwargs):
@@ -467,59 +523,8 @@ def make_ruby_html(text):
 
 def mctoken_to_furi(token):
     ''' Convert mecab token to TTLIG format '''
-    edit_seq = ndiff(token.surface, token.reading_hira())
-    ruby = RubyToken(surface=token.surface)
-    kanji = ''
-    text = ''
-    furi = ''
-    before = ''
-    expected = ''
-    for item in edit_seq:
-        if item.startswith('- '):
-            # flush text if needed
-            if expected and kanji and furi:
-                ruby.append(RubyFrag(text=kanji, furi=furi))
-                kanji = ''
-                furi = ''
-            if text:
-                ruby.append(text)
-                text = ''
-            kanji += item[2:]
-        elif item.startswith('+ '):
-            if expected and item[2:] == expected:
-                if expected and kanji and furi:
-                    ruby.append(RubyFrag(text=kanji, furi=furi))
-                    kanji = ''
-                    furi = ''
-                ruby.append(item[2:])
-                expected = ''
-            else:
-                furi += item[2:]
-        elif item.startswith('  '):
-            if before == '-' and not furi:
-                # shifting happened
-                expected = item[2:]
-                furi += item[2:]
-            else:
-                text += item[2:]
-                # flush if possible
-                if kanji and furi:
-                    ruby.append(RubyFrag(text=kanji, furi=furi))
-                    kanji = ''
-                    furi = ''
-                else:
-                    # possible error?
-                    pass
-        before = item[0]  # end for
-    # flush final parts
-    if kanji:
-        if furi:
-            ruby.append(RubyFrag(text=kanji, furi=furi))
-        else:
-            ruby.append(kanji)
-    elif text:
-        ruby.append(text)
-    return ruby
+    warnings.warn("mctoken_to_furi() is deprecated and will be removed in near future. Use RubyToken.from_furi() instead", DeprecationWarning, stacklevel=2)
+    return RubyToken.from_furi(token.surface, token.reading_hira())
 
 
 def text_to_igrow(txt):
@@ -531,7 +536,7 @@ def text_to_igrow(txt):
         if token.is_eos:
             continue
         pos.append(token.pos3())
-        r = mctoken_to_furi(token)
+        r = RubyToken.from_furi(token.surface, token.reading_hira())
         tokens.append(r.to_code())
     igrow = IGRow(text=txt, tokens=' '.join(tokens), pos=' '.join(pos))
     return igrow

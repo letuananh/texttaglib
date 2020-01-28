@@ -40,6 +40,7 @@ from chirptext import chio
 from chirptext.cli import CLIApp, setup_logging
 
 from texttaglib import ttl, TTLSQLite, ttlig, orgmode
+from texttaglib.elan import parse_eaf_stream
 
 # ----------------------------------------------------------------------
 # Configuration
@@ -198,6 +199,26 @@ def make_html(cli, args):
     output.write(etree.tostring(doc_node, encoding='unicode', pretty_print=not args.compact))
 
 
+def sec_str(a_float):
+    return "{:.3f}".format(a_float)
+
+
+def convert_eaf_to_csv(eaf_path, csv_path):
+    with chio.open(eaf_path) as eaf_stream:
+        elan = parse_eaf_stream(eaf_stream)
+        rows = []
+        for tier in elan.tiers():
+            for anno in tier.annotations:
+                rows.append((tier.ID, tier.participant, sec_str(anno.from_ts.sec),
+                             sec_str(anno.to_ts.sec), sec_str(anno.duration), anno.value))
+        chio.write_tsv(csv_path, rows, quoting=chio.QUOTE_MINIMAL)
+    
+
+def eaf_to_csv(cli, args):
+    ''' Convert ELAN file (*.eaf) to TSV (Tab-separated Values) format '''
+    convert_eaf_to_csv(args.eaf, args.output)
+    print("Output has been written to: {}".format(args.output))
+
 # -------------------------------------------------------------------------------
 # Main
 # -------------------------------------------------------------------------------
@@ -229,6 +250,10 @@ def main():
     task.add_argument('-c', '--compact', help='Do not use pretty print', action='store_true')
     task.add_argument('-d', '--delimiter', help='Token delimiter', default=' ')
 
+    task = app.add_task('eaf2csv', func=eaf_to_csv)
+    task.add_argument('eaf', help='Input EAF file')
+    task.add_argument('-o', '--output', help='path to output CSV file')
+  
     # run app
     app.run()
 
