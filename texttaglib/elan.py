@@ -54,7 +54,7 @@ def getLogger():
 # ----------------------------------------------------------------------
 
 class TimeSlot():
-    def __init__(self, ID, value):
+    def __init__(self, ID, value=None):
         """
         An ELAN timestamp (with ID)
         """
@@ -63,11 +63,11 @@ class TimeSlot():
 
     @property
     def ts(self):
-        return sec2ts(self.sec)
+        return sec2ts(self.sec) if self.value is not None else None
 
     @property
     def sec(self):
-        return self.value / 1000
+        return self.value / 1000 if self.value is not None else None
 
     @staticmethod
     def from_node(node):
@@ -166,6 +166,7 @@ class ELANDoc(DataObject):
         self.version = node.get('VERSION')
         
     def update_header_xml(self, node):
+        ''' Read ELAN doc information from HEADER node '''
         self.media_file = node.get('MEDIA_FILE')
         self.time_units = node.get('TIME_UNITS')
         # extract media information
