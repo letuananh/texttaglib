@@ -69,72 +69,219 @@ class TimeSlot():
     def sec(self):
         return self.value / 1000 if self.value is not None else None
 
+    def __str__(self):
+        val = self.ts
+        return val if val else self.ID
+
     @staticmethod
     def from_node(node):
-        return TimeSlot(node.get('TIME_SLOT_ID'), int(node.get('TIME_VALUE')))
+        slotID = node.get('TIME_SLOT_ID')
+        value = node.get('TIME_VALUE')
+        if value is not None:
+            return TimeSlot(node.get('TIME_SLOT_ID'), int(node.get('TIME_VALUE')))
+        else:
+            return TimeSlot(node.get('TIME_SLOT_ID'))
 
 
 class ELANAnnotation(DataObject):
-    def __init__(self, ID, from_ts, to_ts, value):
+    def __init__(self, ID, value, cve_ref=None, **kwargs):
         """
-        An ELAN annotation
+        An ELAN abstract annotation
         """
+        super().__init__(**kwargs)
         self.ID = ID
+        self.value = value
+        self.cve_ref = cve_ref
+
+    def __repr__(self):
+        return "[{}]".format(self.value)
+        
+    def __str__(self):
+        return self.value
+
+
+class ELANTimeAnnotation(ELANAnnotation):
+    def __init__(self, ID, from_ts, to_ts, value, **kwargs):
+        """
+        An ELAN time-alignable annotation
+        """
+        super().__init__(ID, value, **kwargs)
         self.from_ts = from_ts
         self.to_ts = to_ts
-        self.value = value
 
     @property
     def duration(self):
         return self.to_ts.sec - self.from_ts.sec
 
+    def __repr__(self):
+        return '[{} -- {}] {}'.format(self.from_ts, self.to_ts, self.value)
+
+
+class ELANRefAnnotation(ELANAnnotation):
+    def __init__(self, ID, ref, previous, value, **kwargs):
+        """
+        An ELAN ref annotation (not time alignable)
+        """
+        super().__init__(ID, value, **kwargs)
+        self.ref = ref  # ANNOTATION_REF
+        self.previous = previous  # PREVIOUS_ANNOTATION
+
 
 class ELANTier(DataObject):
-    def __init__(self, type_ref, participant, ID, doc=None):
+
+    NONE = "None"
+    TIME_SUB = "Time_Subdivision"
+    SYM_SUB = "Symbolic_Subdivision"
+    INCL = "Included_In"
+    SYM_ASSOC = "Symbolic_Association"
+    
+    def __init__(self, type_ref, participant, ID, doc=None, default_locale=None, parent_ref=None, **kwargs):
         """
         ELAN Tier Model which contains annotation objects
         """
+        super().__init__(**kwargs)        
         self.type_ref = type_ref
+        self.linguistic_type = None
         self.participant = participant
         self.ID = ID
+        self.default_locale = default_locale
+        self.parent_ref = parent_ref
+        self.parent = None
         self.doc = doc
+        self.children = []
         self.annotations = []
+
+    def __iter__(self):
+        return iter(self.annotations)
+
+    def __repr__(self):
+        return 'Tier(ID={})'.format(self.ID)
+    
+    def __str__(self):
+        return 'Tier(ID={}/type={})'.format(self.ID, self.type_ref)
+
+    def add_alignable_annotation_xml(self, alignable):
+        ann_id = alignable.get('ANNOTATION_ID')
+        from_ts_id = alignable.get('TIME_SLOT_REF1')
+        cve_ref = alignable.get('CVE_REF')  # controlled vocab ref
+        if from_ts_id not in self.doc.time_order:
+            raise ValueError("Time slot ID not found ({})".format(from_ts_id))
+        else:
+            from_ts = self.doc.time_order[from_ts_id]
+        to_ts_id = alignable.get('TIME_SLOT_REF2')
+        if to_ts_id not in self.doc.time_order:
+            raise ValueError("Time slot ID not found ({})".format(to_ts_id))
+        else:
+            to_ts = self.doc.time_order[to_ts_id]
+        # [TODO] ensure that from_ts < to_ts
+        value_node = alignable.find('ANNOTATION_VALUE')
+        if value_node is None:
+            raise ValueError("ALIGNABLE_ANNOTATION node must contain an ANNOTATION_VALUE node")
+        else:
+            value = value_node.text
+            anno = ELANTimeAnnotation(ann_id, from_ts, to_ts, value, cve_ref=cve_ref)
+            self.annotations.append(anno)
+            return anno
+
+    def add_ref_annotation_xml(self, ref_node):
+        ann_id = ref_node.get('ANNOTATION_ID')
+        ref = ref_node.get('ANNOTATION_REF')
+        previous = ref_node.get('PREVIOUS_ANNOTATION')
+        cve_ref = ref_node.get('CVE_REF')  # controlled vocab ref
+        value_node = ref_node.find('ANNOTATION_VALUE')
+        if value_node is None:
+            raise ValueError("REF_ANNOTATION node must contain an ANNOTATION_VALUE node")
+        else:
+            value = value_node.text
+            anno = ELANRefAnnotation(ann_id, ref, previous, value, cve_ref=cve_ref)
+            self.annotations.append(anno)
+            return anno
 
     def add_annotation_xml(self, annotation_node):
         ''' Create an annotation from a node '''
-        alignable = annotation_node.find('ALIGNABLE_ANNOTATION')  # has to be not None
-        if alignable is None:
-            raise ValueError("ANNOTATION node must not be empty")
+        alignable = annotation_node.find('ALIGNABLE_ANNOTATION')
+        if alignable is not None:
+            self.add_alignable_annotation_xml(alignable)
         else:
-            ann_id = alignable.get('ANNOTATION_ID')
-            from_ts_id = alignable.get('TIME_SLOT_REF1')
-            if from_ts_id not in self.doc.time_order:
-                raise ValueError("Time slot ID not found ({})".format(from_ts_id))
+            ref_ann_node = annotation_node.find('REF_ANNOTATION')
+            if ref_ann_node is not None:
+                self.add_ref_annotation_xml(ref_ann_node)
             else:
-                from_ts = self.doc.time_order[from_ts_id]
-            to_ts_id = alignable.get('TIME_SLOT_REF2')
-            if to_ts_id not in self.doc.time_order:
-                raise ValueError("Time slot ID not found ({})".format(to_ts_id))
-            else:
-                to_ts = self.doc.time_order[to_ts_id]
-            # [TODO] ensure that from_ts < to_ts
-            value_node = alignable.find('ANNOTATION_VALUE')
-            if value_node is None:
-                raise ValueError("ALIGNABLE_ANNOTATION node must contain an ANNOTATION_VALUE node")
-            else:
-                value = value_node.text
-                anno = ELANAnnotation(ann_id, from_ts, to_ts, value)
-                self.annotations.append(anno)
-                return anno
+                raise ValueError("ANNOTATION node must not be empty")
 
 
 class LinguisticType(DataObject):
     def __init__(self, xml_node=None):
         """
-
+        Linguistic Tier Type
         """
         data = {k.lower(): v for k, v in xml_node.attrib.items()} if xml_node is not None else {}
         super().__init__(**data)
+        self.vocab = None
+        self.tiers = []
+
+
+class ELANCVEntry(DataObject):
+    def __init__(self, ID, lang_ref, value, description=None):
+        """
+
+        """
+        self.ID = ID
+        self.lang_ref = lang_ref
+        self.value = value
+        self.description = description
+
+    def __repr__(self):
+        return '[{}{}]'.format(self.value, " | {}".format(self.description) if self.description else "")
+
+    def __str__(self):
+        return self.value
+
+
+class ELANVocab(DataObject):
+    ''' ELAN Controlled Vocabulary '''
+    def __init__(self, ID, description, lang_ref, entries=None, **kwargs):
+        """
+
+        """
+        self.ID = ID
+        self.description = description
+        self.lang_ref = lang_ref
+        self.entries = list(entries) if entries else []
+        self.entries_map = {e.ID:e for e in self.entries}
+        self.tiers = []
+
+    def __getitem__(self, key):
+        return self.entries_map[key]
+
+    def __iter__(self):
+        return iter(self.entries)
+
+    def __repr__(self):
+        return str(self)
+    
+    def __str__(self):
+        return 'Vocab({} | count={})'.format(self.ID, len(self.entries))
+
+    @staticmethod
+    def from_xml(node):
+        CVID = node.get('CV_ID')
+        description = ""
+        lang_ref = ""
+        entries = []
+        for child in node:
+            if child.tag == 'DESCRIPTION':
+                description = child.text
+                lang_ref = child.get('LANG_REF')
+            elif child.tag == 'CV_ENTRY_ML':
+                entryID = child.get('CVE_ID')
+                entry_value_node = child.find('CVE_VALUE')
+                entry_lang_ref = entry_value_node.get('LANG_REF')
+                entry_value = entry_value_node.text
+                entry_description = entry_value_node.get('DESCRIPTION')
+                cv_entry = ELANCVEntry(entryID, entry_lang_ref, entry_value, description=entry_description)
+                entries.append(cv_entry)
+        return ELANVocab(CVID, description, lang_ref, entries=entries)
 
 
 class ELANContraint(DataObject):
@@ -155,6 +302,22 @@ class ELANDoc(DataObject):
         self.tiers_map = OrderedDict()
         self.linguistic_types = []
         self.constraints = []
+        self.vocabs = []
+        self.roots = []
+
+    def get_linguistic_type(self, type_id):
+        ''' Get linguistic type by ID. Return None if can not be found '''
+        for lingtype in self.linguistic_types:
+            if lingtype.linguistic_type_id == type_id:
+                return lingtype
+        return None
+        
+    def get_vocab(self, vocab_id):
+        ''' Get controlled vocab list by ID '''
+        for vocab in self.vocabs:
+            if vocab.ID == vocab_id:
+                return vocab
+        return None
 
     def tiers(self):
         return self.tiers_map.values()
@@ -183,7 +346,9 @@ class ELANDoc(DataObject):
         type_ref = tier_node.get('LINGUISTIC_TYPE_REF')
         participant = tier_node.get('PARTICIPANT')
         tier_id = tier_node.get('TIER_ID')
-        tier = ELANTier(type_ref, participant, tier_id, self)
+        parent_ref = tier_node.get('PARENT_REF')
+        default_locale = tier_node.get('DEFAULT_LOCALE')
+        tier = ELANTier(type_ref, participant, tier_id, doc=self, default_locale=default_locale, parent_ref=parent_ref)
         if tier_id in self.tiers_map:
             raise ValueError("Duplicated tier ID ({})".format(tier_id))
         self.tiers_map[tier_id] = tier
@@ -192,6 +357,28 @@ class ELANDoc(DataObject):
     def add_timeslot_xml(self, timeslot_node):
         timeslot = TimeSlot.from_node(timeslot_node)
         self.time_order[timeslot.ID] = timeslot
+
+
+def __resolve(elan_doc):
+    ''' Ensure that everything is linked together (e.g. tiers, vocabs, etc.) '''
+    # link linguistic_types -> vocabs
+    for lingtype in elan_doc.linguistic_types:
+        if lingtype.controlled_vocabulary_ref:
+            lingtype.vocab = elan_doc.get_vocab(lingtype.controlled_vocabulary_ref)
+    # resolves tiers' roots, parents, and type
+    elan_doc.roots = []
+    # link tier to parents
+    for tier in elan_doc.tiers():
+        lingtype = elan_doc.get_linguistic_type(tier.type_ref)
+        tier.linguistic_type = lingtype
+        lingtype.tiers.append(tier)  # type -> tiers
+        if lingtype.vocab:
+            lingtype.vocab.tiers.append(tier)  # vocab -> tiers
+        if tier.parent_ref is not None:
+            tier.parent = elan_doc.tiers_map[tier.parent_ref]
+            elan_doc.tiers_map[tier.parent_ref].children.append(tier)
+        else:
+            elan_doc.roots.append(tier)
 
 
 def parse_eaf_stream(eaf_stream):
@@ -219,4 +406,8 @@ def parse_eaf_stream(eaf_stream):
             elif elem.tag == 'CONSTRAINT':
                 elan_doc.constraints.append(ELANContraint(elem))
                 elem.clear()
+            elif elem.tag == 'CONTROLLED_VOCABULARY':
+                elan_doc.vocabs.append(ELANVocab.from_xml(elem))
+                elem.clear()
+    __resolve(elan_doc)  # link parts together
     return elan_doc
