@@ -36,7 +36,6 @@ from collections import OrderedDict
 import xml.etree.ElementTree as ET
 
 from chirptext import DataObject
-from texttaglib import ttl
 
 from .vtt import sec2ts
 
@@ -78,9 +77,9 @@ class TimeSlot():
         slotID = node.get('TIME_SLOT_ID')
         value = node.get('TIME_VALUE')
         if value is not None:
-            return TimeSlot(node.get('TIME_SLOT_ID'), int(node.get('TIME_VALUE')))
+            return TimeSlot(slotID, int(node.get('TIME_VALUE')))
         else:
-            return TimeSlot(node.get('TIME_SLOT_ID'))
+            return TimeSlot(slotID)
 
 
 class ELANAnnotation(DataObject):
@@ -248,7 +247,7 @@ class ELANVocab(DataObject):
         self.description = description
         self.lang_ref = lang_ref
         self.entries = list(entries) if entries else []
-        self.entries_map = {e.ID:e for e in self.entries}
+        self.entries_map = {e.ID: e for e in self.entries}
         self.tiers = []
 
     def __getitem__(self, key):
@@ -259,7 +258,7 @@ class ELANVocab(DataObject):
 
     def __repr__(self):
         return str(self)
-    
+
     def __str__(self):
         return 'Vocab({} | count={})'.format(self.ID, len(self.entries))
 
@@ -311,7 +310,7 @@ class ELANDoc(DataObject):
             if lingtype.linguistic_type_id == type_id:
                 return lingtype
         return None
-        
+
     def get_vocab(self, vocab_id):
         ''' Get controlled vocab list by ID '''
         for vocab in self.vocabs:
@@ -327,7 +326,7 @@ class ELANDoc(DataObject):
         self.date = node.get('DATE')
         self.fileformat = node.get('FORMAT')
         self.version = node.get('VERSION')
-        
+
     def update_header_xml(self, node):
         ''' Read ELAN doc information from HEADER node '''
         self.media_file = node.get('MEDIA_FILE')
@@ -353,7 +352,7 @@ class ELANDoc(DataObject):
             raise ValueError("Duplicated tier ID ({})".format(tier_id))
         self.tiers_map[tier_id] = tier
         return tier
-            
+
     def add_timeslot_xml(self, timeslot_node):
         timeslot = TimeSlot.from_node(timeslot_node)
         self.time_order[timeslot.ID] = timeslot
