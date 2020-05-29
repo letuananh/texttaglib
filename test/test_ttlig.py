@@ -232,11 +232,12 @@ I have two cat-s.
 
     def test_make_furi_token(self):
         s = deko.parse('友達')
-        f = ttlig.mctoken_to_furi(s[0])
+        # f = ttlig.mctoken_to_furi(s[0])
+        f = ttlig.RubyToken.from_furi(s[0].surface, s[0].reading_hira())
         self.assertEqual(f.to_code(), '{友達/ともだち}')
         # half-width char
         s = deko.parse('0')
-        f = ttlig.mctoken_to_furi(s[0])
+        f = ttlig.RubyToken.from_furi(s[0].surface, s[0].reading_hira())
         self.assertEqual(f.to_code(), '0')
 
     def test_parsing(self):

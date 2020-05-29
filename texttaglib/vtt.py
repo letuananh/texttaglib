@@ -61,8 +61,8 @@ def sec2ts(seconds):
         seconds = float(seconds)
         if seconds < 0:
             raise ValueError("Timestamp cannot be smaller than 0")
-    except:
-        raise ValueError("Invalid timestamp ({})".format(seconds))
+    except Exception as e:
+        raise ValueError("Invalid timestamp ({})".format(seconds)) from e
     min_base = math.floor(seconds / 60)
     ts_hour = math.floor(min_base / 60)
     ts_min = math.floor(min_base % 60)
