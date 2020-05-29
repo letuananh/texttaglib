@@ -372,6 +372,16 @@ class RubyToken(DataObject):
                 frags.append(str(g))
         return ''.join(frags)
 
+    def to_anki(self):
+        ''' Export token to Anki fugigana format '''
+        frags = []
+        for g in self.groups:
+            if isinstance(g, RubyFrag):
+                frags.append('{text}[{furi}]'.format(text=g.text, furi=g.furi))
+            else:
+                frags.append(str(g))
+        return ''.join(frags)
+    
     def __str__(self):
         return self.text()
 
