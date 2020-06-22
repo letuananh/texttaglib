@@ -130,6 +130,10 @@ class TestFurigana(unittest.TestCase):
         rubytext = ttlig.parse_furigana('{{漢字/かんじ}}')
         self.assertEqual(str(rubytext), '{漢字}')
         self.assertEqual(rubytext.to_html(), '{<ruby><rb>漢字</rb><rt>かんじ</rt></ruby>}')
+        # %
+        rubytext = ttlig.parse_furigana('{％/パーセント}')
+        self.assertEqual(str(rubytext), '％')
+        self.assertEqual(rubytext.to_html(), '<ruby><rb>％</rb><rt>パーセント</rt></ruby>')
 
         rubytext = ttlig.parse_furigana('お{天/てん{気/き}')
         self.assertEqual(str(rubytext), 'お{天/てん気')  # first one won't be matched
