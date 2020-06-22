@@ -40,7 +40,7 @@ import warnings
 
 from chirptext import DataObject, piter
 from chirptext import chio
-from chirptext.deko import parse
+from chirptext.deko import is_kana, parse
 
 from texttaglib import ttl
 
@@ -339,7 +339,7 @@ def read(ttlig_filepath):
         return read_stream(infile)
 
 
-FURIMAP = re.compile(r'\{(?P<text>\w+)/(?P<furi>\w+)\}')
+FURIMAP = re.compile(r'\{(?P<text>[\w%％]+?)/(?P<furi>[\w%％]+?)\}')
 
 
 class RubyToken(DataObject):
@@ -387,8 +387,11 @@ class RubyToken(DataObject):
 
     @staticmethod
     def from_furi(surface, kana):
-        edit_seq = ndiff(surface, kana)
         ruby = RubyToken(surface=surface)
+        if is_kana(surface):
+            ruby.append(surface)
+            return ruby
+        edit_seq = ndiff(surface, kana)
         kanji = ''
         text = ''
         furi = ''
