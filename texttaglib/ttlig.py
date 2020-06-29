@@ -98,6 +98,20 @@ class IGRow(DataObject):
                 else:
                     for t, m in zip(ttl_sent, _morphtokens):
                         t.new_tag(m, tagtype='mtrans')
+            if self.pos:
+                _postokens = tokenize(self.pos)
+                if len(_postokens) != len(ttl_sent):
+                    getLogger().warning("Part-of-speech line and tokens line are mismatched for sentence: {}".format(self.ident or self.ID or self.Id or self.id or self.text))
+                else:
+                    for t, m in zip(ttl_sent, _postokens):
+                        t.pos = m
+            if self.lemma:
+                _lemmas = tokenize(self.lemma)
+                if len(_lemmas) != len(ttl_sent):
+                    getLogger().warning("Lemma line and tokens line are mismatched for sentence: {}".format(self.ident or self.ID or self.Id or self.id or self.text))
+                else:
+                    for t, m in zip(ttl_sent, _lemmas):
+                        t.lemma = m
             if self.morphgloss:
                 _glosstokens = tokenize(self.morphgloss)
                 if len(_glosstokens) != len(ttl_sent):
@@ -223,7 +237,7 @@ class TTLIG(object):
     CORPUS_MANAGEMENT = ['comment', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'type']
     SEMANTICS = ['concept']
     DISCOURSE = ['tsfrom', 'tsto', 'speaker']
-    INTERLINEAR_GLOSS = ['ident', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'tokens']
+    INTERLINEAR_GLOSS = ['ident', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'tokens', 'lemma', 'pos']
     KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SEMANTICS + INTERLINEAR_GLOSS + DISCOURSE
     # [TODO] Add examples & description for each of these labels
 
@@ -545,13 +559,15 @@ def text_to_igrow(txt):
     msent = parse(txt)
     tokens = []
     pos = []
+    lemmas = []
     for token in msent:
         if token.is_eos:
             continue
         pos.append(token.pos3())
         r = RubyToken.from_furi(token.surface, token.reading_hira())
         tokens.append(r.to_code())
-    igrow = IGRow(text=txt, tokens=' '.join(tokens), pos=' '.join(pos))
+        lemmas.append(token.root)
+    igrow = IGRow(text=txt, tokens=' '.join(tokens), pos=' '.join(pos), lemma=' '.join(lemmas))
     return igrow
 
 
