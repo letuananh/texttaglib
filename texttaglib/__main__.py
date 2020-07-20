@@ -206,13 +206,9 @@ def sec_str(a_float):
 def convert_eaf_to_csv(eaf_path, csv_path):
     with chio.open(eaf_path) as eaf_stream:
         elan = parse_eaf_stream(eaf_stream)
-        rows = []
-        for tier in elan.tiers():
-            for anno in tier.annotations:
-                rows.append((tier.ID, tier.participant, sec_str(anno.from_ts.sec),
-                             sec_str(anno.to_ts.sec), sec_str(anno.duration), anno.value))
+        rows = elan.to_csv_rows()
         chio.write_tsv(csv_path, rows, quoting=chio.QUOTE_MINIMAL)
-    
+
 
 def eaf_to_csv(cli, args):
     ''' Convert ELAN file (*.eaf) to TSV (Tab-separated Values) format '''
