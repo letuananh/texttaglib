@@ -33,6 +33,7 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 
 import logging
 from collections import OrderedDict
+from collections import defaultdict as dd
 import xml.etree.ElementTree as ET
 
 from chirptext import DataObject
@@ -67,6 +68,15 @@ class TimeSlot():
     @property
     def sec(self):
         return self.value / 1000 if self.value is not None else None
+
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def __add__(self, other):
+        return self.value + other.value if isinstance(other, TimeSlot) else self.value + other
+
+    def __sub__(self, other):
+        return self.value - other.value if isinstance(other, TimeSlot) else self.value - other
 
     def __str__(self):
         val = self.ts
@@ -112,6 +122,12 @@ class ELANTimeAnnotation(ELANAnnotation):
     def duration(self):
         return self.to_ts.sec - self.from_ts.sec
 
+    def overlap(self, other):
+        ''' Calculate overlap score between two time annotations
+        Score = 0 means adjacent, score > 0 means overlapped, score < 0 means no overlap (the distance between the two)
+        '''
+        return min(self.to_ts, other.to_ts) - max(self.from_ts, other.from_ts)
+
     def __repr__(self):
         return '[{} -- {}] {}'.format(self.from_ts, self.to_ts, self.value)
 
@@ -133,7 +149,7 @@ class ELANTier(DataObject):
     SYM_SUB = "Symbolic_Subdivision"
     INCL = "Included_In"
     SYM_ASSOC = "Symbolic_Association"
-    
+
     def __init__(self, type_ref, participant, ID, doc=None, default_locale=None, parent_ref=None, **kwargs):
         """
         ELAN Tier Model which contains annotation objects
@@ -141,7 +157,7 @@ class ELANTier(DataObject):
         super().__init__(**kwargs)        
         self.type_ref = type_ref
         self.linguistic_type = None
-        self.participant = participant
+        self.participant = participant if participant else ''
         self.ID = ID
         self.default_locale = default_locale
         self.parent_ref = parent_ref
@@ -318,6 +334,15 @@ class ELANDoc(DataObject):
                 return vocab
         return None
 
+    def get_participant_map(self):
+        ''' Map participants to tiers
+        Return a map from participant name to a list of corresponding tiers
+        '''
+        par_map = dd(list)
+        for t in self.tiers():
+            par_map[t.participant].append(t)
+        return par_map
+
     def tiers(self):
         return self.tiers_map.values()
 
@@ -356,6 +381,14 @@ class ELANDoc(DataObject):
     def add_timeslot_xml(self, timeslot_node):
         timeslot = TimeSlot.from_node(timeslot_node)
         self.time_order[timeslot.ID] = timeslot
+
+    def to_csv_rows(self):
+        rows = []
+        for tier in self.tiers():
+            for anno in tier.annotations:
+                rows.append((tier.ID, tier.participant, f"{anno.from_ts.sec:.3f}",
+                             f"{anno.to_ts.sec:.3f}", f"{anno.duration:.3f}", anno.value))
+        return rows
 
 
 def __resolve(elan_doc):
