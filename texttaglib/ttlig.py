@@ -602,7 +602,7 @@ class Transcript(DataObject):
 
     def __len__(self):
         return len(self.__sents)
-    
+
     def __getitem__(self, idx):
         return self.__sents[idx]
 
@@ -613,7 +613,7 @@ class Transcript(DataObject):
         return self.__sents
 
     def tag_language(self, utterance_tier_name, language_tier_name, default_value=''):
-        ''' Use text value from language_tier as language to tag utterances 
+        ''' Use text value from language_tier as language to tag utterances
             default_value -- Default language value (defaulted to an empty string)
         '''
         utterance_tier = self.__tiers[utterance_tier_name]
@@ -647,11 +647,11 @@ class Transcript(DataObject):
         if _current:
             _utterances.append(_current)
         return _utterances
-    
+
     @staticmethod
-    def read_elan(file_path, *args, **kwargs):
+    def from_rows(rows):
         transcript = Transcript()
-        for row in chio.read_tsv_iter(file_path, *args, **kwargs):
+        for row in rows:
             if len(row) == 5:
                 tier, start_sec, end_sec, dur_sec, text = row
                 transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier)
@@ -659,6 +659,15 @@ class Transcript(DataObject):
                 tier, speaker, start_sec, end_sec, dur_sec, text = row
                 transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier, speaker=speaker)
             else:
-                print(f"WARNING: Invalid line {row}")
+                getLogger().warning(f"Invalid line {row}")
                 continue
         return transcript
+
+    @staticmethod
+    def read_tsv(file_path, *args, **kwargs):
+        return Transcript.from_rows(chio.read_tsv_iter(file_path, *args, **kwargs))
+
+    @staticmethod
+    def read_elan(file_path, *args, **kwargs):
+        warnings.warn("Transcript.read_elan() is deprecated and will be removed in near future. Use Transcript.read_tsv() instead", DeprecationWarning, stacklevel=2)
+        return Transcript.read_tsv(file_path, *args, **kwargs)
