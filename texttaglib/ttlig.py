@@ -580,6 +580,7 @@ class Transcript(DataObject):
         self.__tiers = dd(list)
 
     def insert(self, text, tsfrom, tsto=None, tsduration=None, tier=None, **kwargs):
+        ''' Add an annotation chunk to a tier '''
         ig = IGRow(text=text, tsfrom=float(tsfrom), **kwargs)
         if tsto is not None:
             ig.tsto = float(tsto)
@@ -650,6 +651,7 @@ class Transcript(DataObject):
 
     @staticmethod
     def from_rows(rows):
+        ''' create a Transcript object from CSV rows (list of list) '''
         transcript = Transcript()
         for row in rows:
             if len(row) == 5:
@@ -666,8 +668,3 @@ class Transcript(DataObject):
     @staticmethod
     def read_tsv(file_path, *args, **kwargs):
         return Transcript.from_rows(chio.read_tsv_iter(file_path, *args, **kwargs))
-
-    @staticmethod
-    def read_elan(file_path, *args, **kwargs):
-        warnings.warn("Transcript.read_elan() is deprecated and will be removed in near future. Use Transcript.read_tsv() instead", DeprecationWarning, stacklevel=2)
-        return Transcript.read_tsv(file_path, *args, **kwargs)
