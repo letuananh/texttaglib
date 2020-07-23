@@ -172,9 +172,12 @@ class ELANTier(DataObject):
     def __iter__(self):
         return iter(self.annotations)
 
+    def __len__(self):
+        return len(self.annotations)
+
     def __repr__(self):
         return 'Tier(ID={})'.format(self.ID)
-    
+
     def __str__(self):
         return 'Tier(ID={}/type={})'.format(self.ID, self.type_ref)
 
