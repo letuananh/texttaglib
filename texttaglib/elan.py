@@ -104,9 +104,9 @@ class ELANAnnotation(DataObject):
 
     def __repr__(self):
         return "[{}]".format(self.value)
-        
+
     def __str__(self):
-        return self.value
+        return str(self.value)
 
 
 class ELANTimeAnnotation(ELANAnnotation):
@@ -130,6 +130,9 @@ class ELANTimeAnnotation(ELANAnnotation):
 
     def __repr__(self):
         return '[{} -- {}] {}'.format(self.from_ts, self.to_ts, self.value)
+
+    def __str__(self):
+        return str(self.value)
 
 
 class ELANRefAnnotation(ELANAnnotation):
@@ -193,7 +196,7 @@ class ELANTier(DataObject):
         if value_node is None:
             raise ValueError("ALIGNABLE_ANNOTATION node must contain an ANNOTATION_VALUE node")
         else:
-            value = value_node.text
+            value = value_node.text if value_node.text else ''
             anno = ELANTimeAnnotation(ann_id, from_ts, to_ts, value, cve_ref=cve_ref)
             self.annotations.append(anno)
             return anno
@@ -207,7 +210,7 @@ class ELANTier(DataObject):
         if value_node is None:
             raise ValueError("REF_ANNOTATION node must contain an ANNOTATION_VALUE node")
         else:
-            value = value_node.text
+            value = value_node.text if value_node.text else ''
             anno = ELANRefAnnotation(ann_id, ref, previous, value, cve_ref=cve_ref)
             self.annotations.append(anno)
             return anno
