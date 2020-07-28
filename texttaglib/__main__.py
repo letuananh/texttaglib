@@ -46,7 +46,10 @@ from texttaglib.elan import parse_eaf_stream
 # Configuration
 # ----------------------------------------------------------------------
 
-setup_logging('logging.json', 'logs')
+try:
+    setup_logging('logging.json', 'logs')
+except Exception:
+    pass
 
 
 def getLogger():
