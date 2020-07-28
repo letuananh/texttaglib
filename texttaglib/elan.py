@@ -38,7 +38,7 @@ import xml.etree.ElementTree as ET
 
 from chirptext import DataObject
 
-from .vtt import sec2ts
+from .vtt import sec2ts, ts2sec
 
 
 # ----------------------------------------------------------------------
@@ -70,13 +70,28 @@ class TimeSlot():
         return self.value / 1000 if self.value is not None else None
 
     def __lt__(self, other):
-        return self.value < other.value
+        return self.value < other.value if isinstance(other, TimeSlot) else self.value < other
+
+    def __gt__(self, other):
+        return self.value > other.value if isinstance(other, TimeSlot) else self.value > other
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return self > other or self == other
+
+    def __eq__(self, other):
+        return self.value == other.value if isinstance(other, TimeSlot) else self.value == other
 
     def __add__(self, other):
         return self.value + other.value if isinstance(other, TimeSlot) else self.value + other
 
     def __sub__(self, other):
         return self.value - other.value if isinstance(other, TimeSlot) else self.value - other
+
+    def __hash__(self):
+        return id(self)
 
     def __str__(self):
         val = self.ts
@@ -90,6 +105,11 @@ class TimeSlot():
             return TimeSlot(slotID, int(node.get('TIME_VALUE')))
         else:
             return TimeSlot(slotID)
+
+    @staticmethod
+    def from_ts(ts, ID=None):
+        value = ts2sec(ts) * 1000
+        return TimeSlot(ID=ID, value=value)
 
 
 class ELANAnnotation(DataObject):
@@ -157,7 +177,7 @@ class ELANTier(DataObject):
         """
         ELAN Tier Model which contains annotation objects
         """
-        super().__init__(**kwargs)        
+        super().__init__(**kwargs)
         self.type_ref = type_ref
         self.linguistic_type = None
         self.participant = participant if participant else ''
@@ -169,8 +189,30 @@ class ELANTier(DataObject):
         self.children = []
         self.annotations = []
 
+    def __getitem__(self, key):
+        return self.annotations[key]
+
     def __iter__(self):
         return iter(self.annotations)
+
+    def get_child(self, ID):
+        ''' Get a child tier by ID, return None if nothing is found '''
+        for child in self.children:
+            if child.ID == ID:
+                return child
+        return None
+
+    def filter(self, from_ts=None, to_ts=None):
+        ''' Filter utterances by from_ts or to_ts or both
+        If this tier is not a time-based tier everything will be returned
+        '''
+        for ann in self.annotations:
+            if from_ts is not None and ann.from_ts is not None and ann.from_ts < from_ts:
+                continue
+            elif to_ts is not None and ann.to_ts is not None and ann.from_ts > to_ts:
+                continue
+            else:
+                yield ann
 
     def __len__(self):
         return len(self.annotations)
@@ -348,6 +390,9 @@ class ELANDoc(DataObject):
         for t in self.tiers():
             par_map[t.participant].append(t)
         return par_map
+
+    def __iter__(self):
+        return iter(self.tiers_map.values())
 
     def tiers(self):
         return self.tiers_map.values()
