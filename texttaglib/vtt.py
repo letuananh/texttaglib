@@ -39,7 +39,6 @@ import re
 import logging
 import math
 
-
 # ----------------------------------------------------------------------
 # Configuration
 # ----------------------------------------------------------------------
@@ -48,7 +47,7 @@ def getLogger():
     return logging.getLogger(__name__)
 
 
-WEBVTT = re.compile('(?P<hour>\d{2,}):(?P<min>\d{2}):(?P<sec>\d{2}.\d{3})')
+WEBVTT = re.compile(r'(?P<hour>\d{2,}):(?P<min>\d{2}):(?P<sec>\d{2}.\d{3})')
 
 
 # ----------------------------------------------------------------------
