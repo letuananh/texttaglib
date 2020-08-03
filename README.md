@@ -45,17 +45,17 @@ with open('./data/test.eaf') as eaf_stream:
     elan = parse_eaf_stream(eaf_stream)
 
 # accessing metadata
-print("Author: {} | Date: {} | Format: {} | Version: {}".format(elan.author, elan.date, elan.fileformat, elan.version))
-print("Media file: {}".format(elan.media_file))
-print("Time units: {}".format(elan.time_units))
-print("Media URL: {} | MIME type: {}".format(elan.media_url, elan.mime_type))
-print("Media relative URL: {}".format(elan.relative_media_url))
+print(f"Author: {elan.author} | Date: {elan.date} | Format: {elan.fileformat} | Version: {elan.version}")
+print(f"Media file: {elan.media_file}")
+print(f"Time units: {elan.time_units}")
+print(f"Media URL: {elan.media_url} | MIME type: {elan.mime_type}")
+print(f"Media relative URL: {elan.relative_media_url}")
 
 # accessing tiers & annotations
 for tier in elan.tiers():
-    print("{} | Participant: {} | Type: {}".format(tier.ID, tier.participant, tier.type_ref))
-    for anno in tier.annotations:
-        print("{}. [{} -- {}] {}".format(anno.ID.rjust(4, ' '), anno.from_ts.ts, anno.to_ts.ts, anno.value))
+    print(f"{tier.ID} | Participant: {tier.participant} | Type: {tier.type_ref}")
+    for ann in tier.annotations:
+        print(f"{ann.ID.rjust(4, ' ')}. [{ann.from_ts.ts} -- {ann.to_ts.ts}] {ann.value}")
 ```
 
 # SQLite support
