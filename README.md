@@ -1,4 +1,8 @@
-Python library for managing and annotating textual corpus using TextTagLib (TTL) format
+Python library for managing and annotating text corpuses using TextTagLib (TTL) format.
+Main functions are:
+- Multiple storage formats (text files, JSON files, SQLite databases)
+- TTLIG - A human-friendly intelinear gloss format for linguistic documentation 
+- Manipuling transcription files directly in ELAN Annotation Format (eaf)
 
 # Installation
 
