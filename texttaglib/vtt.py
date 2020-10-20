@@ -43,6 +43,7 @@ import math
 # Configuration
 # ----------------------------------------------------------------------
 
+
 def getLogger():
     return logging.getLogger(__name__)
 
