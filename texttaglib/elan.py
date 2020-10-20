@@ -33,11 +33,12 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 
 import logging
 from collections import OrderedDict
+from collections import defaultdict as dd
 import xml.etree.ElementTree as ET
 
 from chirptext import DataObject
 
-from .vtt import sec2ts
+from .vtt import sec2ts, ts2sec
 
 
 # ----------------------------------------------------------------------
@@ -68,6 +69,30 @@ class TimeSlot():
     def sec(self):
         return self.value / 1000 if self.value is not None else None
 
+    def __lt__(self, other):
+        return self.value < other.value if isinstance(other, TimeSlot) else self.value < other
+
+    def __gt__(self, other):
+        return self.value > other.value if isinstance(other, TimeSlot) else self.value > other
+
+    def __le__(self, other):
+        return self < other or self == other
+
+    def __ge__(self, other):
+        return self > other or self == other
+
+    def __eq__(self, other):
+        return self.value == other.value if isinstance(other, TimeSlot) else self.value == other
+
+    def __add__(self, other):
+        return self.value + other.value if isinstance(other, TimeSlot) else self.value + other
+
+    def __sub__(self, other):
+        return self.value - other.value if isinstance(other, TimeSlot) else self.value - other
+
+    def __hash__(self):
+        return id(self)
+
     def __str__(self):
         val = self.ts
         return val if val else self.ID
@@ -80,6 +105,11 @@ class TimeSlot():
             return TimeSlot(slotID, int(node.get('TIME_VALUE')))
         else:
             return TimeSlot(slotID)
+
+    @staticmethod
+    def from_ts(ts, ID=None):
+        value = ts2sec(ts) * 1000
+        return TimeSlot(ID=ID, value=value)
 
 
 class ELANAnnotation(DataObject):
@@ -94,9 +124,9 @@ class ELANAnnotation(DataObject):
 
     def __repr__(self):
         return "[{}]".format(self.value)
-        
+
     def __str__(self):
-        return self.value
+        return str(self.value)
 
 
 class ELANTimeAnnotation(ELANAnnotation):
@@ -112,8 +142,17 @@ class ELANTimeAnnotation(ELANAnnotation):
     def duration(self):
         return self.to_ts.sec - self.from_ts.sec
 
+    def overlap(self, other):
+        ''' Calculate overlap score between two time annotations
+        Score = 0 means adjacent, score > 0 means overlapped, score < 0 means no overlap (the distance between the two)
+        '''
+        return min(self.to_ts, other.to_ts) - max(self.from_ts, other.from_ts)
+
     def __repr__(self):
         return '[{} -- {}] {}'.format(self.from_ts, self.to_ts, self.value)
+
+    def __str__(self):
+        return str(self.value)
 
 
 class ELANRefAnnotation(ELANAnnotation):
@@ -133,15 +172,15 @@ class ELANTier(DataObject):
     SYM_SUB = "Symbolic_Subdivision"
     INCL = "Included_In"
     SYM_ASSOC = "Symbolic_Association"
-    
+
     def __init__(self, type_ref, participant, ID, doc=None, default_locale=None, parent_ref=None, **kwargs):
         """
         ELAN Tier Model which contains annotation objects
         """
-        super().__init__(**kwargs)        
+        super().__init__(**kwargs)
         self.type_ref = type_ref
         self.linguistic_type = None
-        self.participant = participant
+        self.participant = participant if participant else ''
         self.ID = ID
         self.default_locale = default_locale
         self.parent_ref = parent_ref
@@ -150,12 +189,37 @@ class ELANTier(DataObject):
         self.children = []
         self.annotations = []
 
+    def __getitem__(self, key):
+        return self.annotations[key]
+
     def __iter__(self):
         return iter(self.annotations)
 
+    def get_child(self, ID):
+        ''' Get a child tier by ID, return None if nothing is found '''
+        for child in self.children:
+            if child.ID == ID:
+                return child
+        return None
+
+    def filter(self, from_ts=None, to_ts=None):
+        ''' Filter utterances by from_ts or to_ts or both
+        If this tier is not a time-based tier everything will be returned
+        '''
+        for ann in self.annotations:
+            if from_ts is not None and ann.from_ts is not None and ann.from_ts < from_ts:
+                continue
+            elif to_ts is not None and ann.to_ts is not None and ann.from_ts > to_ts:
+                continue
+            else:
+                yield ann
+
+    def __len__(self):
+        return len(self.annotations)
+
     def __repr__(self):
         return 'Tier(ID={})'.format(self.ID)
-    
+
     def __str__(self):
         return 'Tier(ID={}/type={})'.format(self.ID, self.type_ref)
 
@@ -177,7 +241,7 @@ class ELANTier(DataObject):
         if value_node is None:
             raise ValueError("ALIGNABLE_ANNOTATION node must contain an ANNOTATION_VALUE node")
         else:
-            value = value_node.text
+            value = value_node.text if value_node.text else ''
             anno = ELANTimeAnnotation(ann_id, from_ts, to_ts, value, cve_ref=cve_ref)
             self.annotations.append(anno)
             return anno
@@ -191,7 +255,7 @@ class ELANTier(DataObject):
         if value_node is None:
             raise ValueError("REF_ANNOTATION node must contain an ANNOTATION_VALUE node")
         else:
-            value = value_node.text
+            value = value_node.text if value_node.text else ''
             anno = ELANRefAnnotation(ann_id, ref, previous, value, cve_ref=cve_ref)
             self.annotations.append(anno)
             return anno
@@ -318,6 +382,18 @@ class ELANDoc(DataObject):
                 return vocab
         return None
 
+    def get_participant_map(self):
+        ''' Map participants to tiers
+        Return a map from participant name to a list of corresponding tiers
+        '''
+        par_map = dd(list)
+        for t in self.tiers():
+            par_map[t.participant].append(t)
+        return par_map
+
+    def __iter__(self):
+        return iter(self.tiers_map.values())
+
     def tiers(self):
         return self.tiers_map.values()
 
@@ -356,6 +432,14 @@ class ELANDoc(DataObject):
     def add_timeslot_xml(self, timeslot_node):
         timeslot = TimeSlot.from_node(timeslot_node)
         self.time_order[timeslot.ID] = timeslot
+
+    def to_csv_rows(self):
+        rows = []
+        for tier in self.tiers():
+            for anno in tier.annotations:
+                rows.append((tier.ID, tier.participant, f"{anno.from_ts.sec:.3f}",
+                             f"{anno.to_ts.sec:.3f}", f"{anno.duration:.3f}", anno.value))
+        return rows
 
 
 def __resolve(elan_doc):

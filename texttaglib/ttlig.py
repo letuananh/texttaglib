@@ -40,7 +40,7 @@ import warnings
 
 from chirptext import DataObject, piter
 from chirptext import chio
-from chirptext.deko import parse
+from chirptext.deko import is_kana, parse
 
 from texttaglib import ttl
 
@@ -98,6 +98,20 @@ class IGRow(DataObject):
                 else:
                     for t, m in zip(ttl_sent, _morphtokens):
                         t.new_tag(m, tagtype='mtrans')
+            if self.pos:
+                _postokens = tokenize(self.pos)
+                if len(_postokens) != len(ttl_sent):
+                    getLogger().warning("Part-of-speech line and tokens line are mismatched for sentence: {}".format(self.ident or self.ID or self.Id or self.id or self.text))
+                else:
+                    for t, m in zip(ttl_sent, _postokens):
+                        t.pos = m
+            if self.lemma:
+                _lemmas = tokenize(self.lemma)
+                if len(_lemmas) != len(ttl_sent):
+                    getLogger().warning("Lemma line and tokens line are mismatched for sentence: {}".format(self.ident or self.ID or self.Id or self.id or self.text))
+                else:
+                    for t, m in zip(ttl_sent, _lemmas):
+                        t.lemma = m
             if self.morphgloss:
                 _glosstokens = tokenize(self.morphgloss)
                 if len(_glosstokens) != len(ttl_sent):
@@ -216,15 +230,17 @@ class TTLIG(object):
     AUTO_LINES = ['tokens', 'morphtrans', 'gloss']
     MANUAL_TAG = '__manual__'
     AUTO_TAG = '__auto__'
-    SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
+    ROBUST_TAG = '__robust__'
+    SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG, ROBUST_TAG]
     KNOWN_META = ['language', 'language code', 'lines', 'author', 'date']
     ANNOTATIONS = ['flag', 'font', 'font-global']
     SPECIAL_FEATURES = ['furigana', 'furi']
     CORPUS_MANAGEMENT = ['comment', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'type']
-    SEMANTICS = ['concept']
+    SYNTAX = ['tree', 'dtree']
+    SEMANTICS = ['concept', 'mrs', 'dmrs', 'predicates', 'preds']
     DISCOURSE = ['tsfrom', 'tsto', 'speaker']
-    INTERLINEAR_GLOSS = ['ident', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'tokens']
-    KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SEMANTICS + INTERLINEAR_GLOSS + DISCOURSE
+    INTERLINEAR_GLOSS = ['ident', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'tokens', 'lemma', 'pos']
+    KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SYNTAX + SEMANTICS + INTERLINEAR_GLOSS + DISCOURSE
     # [TODO] Add examples & description for each of these labels
 
     def __init__(self, meta):
@@ -339,7 +355,7 @@ def read(ttlig_filepath):
         return read_stream(infile)
 
 
-FURIMAP = re.compile(r'\{(?P<text>\w+)/(?P<furi>\w+)\}')
+FURIMAP = re.compile(r'\{(?P<text>[\w%％]+?)/(?P<furi>[\w%％]+?)\}')
 
 
 class RubyToken(DataObject):
@@ -372,13 +388,26 @@ class RubyToken(DataObject):
                 frags.append(str(g))
         return ''.join(frags)
 
+    def to_anki(self):
+        ''' Export token to Anki fugigana format '''
+        frags = []
+        for g in self.groups:
+            if isinstance(g, RubyFrag):
+                frags.append('{text}[{furi}]'.format(text=g.text, furi=g.furi))
+            else:
+                frags.append(str(g))
+        return ''.join(frags)
+    
     def __str__(self):
         return self.text()
 
     @staticmethod
     def from_furi(surface, kana):
-        edit_seq = ndiff(surface, kana)
         ruby = RubyToken(surface=surface)
+        if is_kana(surface):
+            ruby.append(surface)
+            return ruby
+        edit_seq = ndiff(surface, kana)
         kanji = ''
         text = ''
         furi = ''
@@ -532,104 +561,13 @@ def text_to_igrow(txt):
     msent = parse(txt)
     tokens = []
     pos = []
+    lemmas = []
     for token in msent:
         if token.is_eos:
             continue
         pos.append(token.pos3())
         r = RubyToken.from_furi(token.surface, token.reading_hira())
         tokens.append(r.to_code())
-    igrow = IGRow(text=txt, tokens=' '.join(tokens), pos=' '.join(pos))
+        lemmas.append(token.root)
+    igrow = IGRow(text=txt, tokens=' '.join(tokens), pos=' '.join(pos), lemma=' '.join(lemmas))
     return igrow
-
-
-class Transcript(DataObject):
-    def __init__(self):
-        """
-        Represent a transcript of a recording
-        """
-        self.__sents = []  # utterances sorted by starting time
-        self.__tiers = dd(list)
-
-    def insert(self, text, tsfrom, tsto=None, tsduration=None, tier=None, **kwargs):
-        ig = IGRow(text=text, tsfrom=float(tsfrom), **kwargs)
-        if tsto is not None:
-            ig.tsto = float(tsto)
-            if tsduration is not None:
-                expected = round(ig.tsduration, 3)
-                if expected != round(float(tsduration), 3):
-                    raise ValueError("Inconsistent values for tsfrom ({}), tsto ({}), and tsduration ({}). Expected tsduration=({})".format(tsfrom, tsto, tsduration, expected))
-        elif tsduration is not None:
-            ig.tsto = ig.tsfrom + float(tsduration)
-        if tier is not None:
-            ig.tier = tier
-        self.__tiers[ig.tier].append(ig)
-        self.__sents.append(ig)
-
-    def tier_names(self):
-        return tuple(self.__tiers.keys())
-
-    def tier(self, tier_name):
-        return self.__tiers[tier_name] if tier_name in self.__tiers else None
-
-    def __len__(self):
-        return len(self.__sents)
-    
-    def __getitem__(self, idx):
-        return self.__sents[idx]
-
-    def sort(self):
-        self.__sents.sort(key=lambda sent: (sent.tsfrom, sent.tsto))
-        for tier in self.__tiers.values():
-            tier.sort(key=lambda sent: (sent.tsfrom, sent.tsto))
-        return self.__sents
-
-    def tag_language(self, utterance_tier_name, language_tier_name, default_value=''):
-        ''' Use text value from language_tier as language to tag utterances 
-            default_value -- Default language value (defaulted to an empty string)
-        '''
-        utterance_tier = self.__tiers[utterance_tier_name]
-        language_tier = self.__tiers[language_tier_name]
-        for u in utterance_tier:
-            candidates = []
-            for l in language_tier:
-                score = u.overlap(l)
-                if score > 0:
-                    candidates.append((score, l))
-                if l.tsfrom > u.tsto:
-                    break
-            if candidates:
-                u.language = max(candidates, key=lambda x: x[0])[1].text.strip().replace(':', '__')
-            elif not u.language:
-                u.language = default_value
-        return utterance_tier
-
-    def join_utterances(self, tier_name=None):
-        ''' Group adjecent utterances together. Return a list of joined utterance lists '''
-        _timeline = self.__sents if tier_name is None else self.__tiers[tier_name]
-        _utterances = []
-        _current = []  # current group
-        for idx, s in enumerate(_timeline):
-            if idx == 0 or s.tsfrom == _timeline[idx - 1].tsto:
-                _current.append(s)
-            else:
-                # flush
-                _utterances.append(_current)
-                _current = [s]
-        if _current:
-            _utterances.append(_current)
-        return _utterances
-    
-    @staticmethod
-    def read_elan(file_path, *args, **kwargs):
-        transcript = Transcript()
-        for row in chio.read_tsv_iter(file_path, *args, **kwargs):
-            if len(row) == 5:
-                tier, start_sec, end_sec, dur_sec, text = row
-                transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier)
-            elif len(row) == 6:
-                tier, speaker, start_sec, end_sec, dur_sec, text = row
-                transcript.insert(text, start_sec, tsto=end_sec, tsduration=dur_sec, tier=tier, speaker=speaker)
-            else:
-                print(f"WARNING: Invalid line {row}")
-                continue
-        return transcript
