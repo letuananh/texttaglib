@@ -230,15 +230,17 @@ class TTLIG(object):
     AUTO_LINES = ['tokens', 'morphtrans', 'gloss']
     MANUAL_TAG = '__manual__'
     AUTO_TAG = '__auto__'
-    SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG]
+    ROBUST_TAG = '__robust__'
+    SPECIAL_LABELS = [AUTO_TAG, MANUAL_TAG, ROBUST_TAG]
     KNOWN_META = ['language', 'language code', 'lines', 'author', 'date']
     ANNOTATIONS = ['flag', 'font', 'font-global']
     SPECIAL_FEATURES = ['furigana', 'furi']
     CORPUS_MANAGEMENT = ['comment', 'source', 'vetted', 'judgement', 'phenomena', 'url', 'type']
-    SEMANTICS = ['concept']
+    SYNTAX = ['tree', 'dtree']
+    SEMANTICS = ['concept', 'mrs', 'dmrs', 'predicates', 'preds']
     DISCOURSE = ['tsfrom', 'tsto', 'speaker']
     INTERLINEAR_GLOSS = ['ident', 'orth', 'morphgloss', 'wordgloss', 'translation', 'text', 'translit', 'translat', 'tokens', 'lemma', 'pos']
-    KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SEMANTICS + INTERLINEAR_GLOSS + DISCOURSE
+    KNOWN_LABELS = AUTO_LINES + KNOWN_META + ANNOTATIONS + SPECIAL_FEATURES + CORPUS_MANAGEMENT + SYNTAX + SEMANTICS + INTERLINEAR_GLOSS + DISCOURSE
     # [TODO] Add examples & description for each of these labels
 
     def __init__(self, meta):
