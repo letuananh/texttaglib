@@ -40,7 +40,15 @@ The script above will generate this corpus
 ```
 
 # ELAN support
-TTL can extract metadata and annotations from ELAN transcripts using Python.
+
+texttaglib library contains a command line tool for converting EAF files into CSV.
+
+```bash
+python -m texttaglib eaf2csv input_elan_file.eaf -o output_file_name.csv
+```
+
+For more complex analyses, texttaglib Python scripts can be used to extract metadata and annotations from ELAN transcripts, for example:
+
 ``` python
 from texttaglib.elan import parse_eaf_stream
 
