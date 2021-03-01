@@ -437,8 +437,10 @@ class ELANDoc(DataObject):
         rows = []
         for tier in self.tiers():
             for anno in tier.annotations:
-                rows.append((tier.ID, tier.participant, f"{anno.from_ts.sec:.3f}",
-                             f"{anno.to_ts.sec:.3f}", f"{anno.duration:.3f}", anno.value))
+                _from_ts = f"{anno.from_ts.sec:.3f}" if anno.from_ts else None
+                _to_ts = f"{anno.to_ts.sec:.3f}" if anno.to_ts else None
+                _duration = f"{anno.duration:.3f}" if anno.duration else None
+                rows.append((tier.ID, tier.participant, _from_ts, _to_ts, _duration, anno.value))
         return rows
 
 
