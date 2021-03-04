@@ -23,5 +23,8 @@ with open('./data/test_nested.eaf') as eaf_stream:
 # accessing nested tiers
 for tier in elan2.roots:
     print(f"{tier.ID} | Participant: {tier.participant} | Type: {tier.type_ref}")
+    print(f"  -- {ann.ID.rjust(4, ' ')}. [{ann.from_ts.ts} -- {ann.to_ts.ts}] {ann.value}")    
     for child_tier in tier.children:
-        print(f"    - {child_tier.ID} | Participant: {child_tier.participant} | Type: {child_tier.type_ref}")
+        print(f"    | {child_tier.ID} | Participant: {child_tier.participant} | Type: {child_tier.type_ref}")
+        for ann in child_tier.annotations:
+            print(f"    |- {ann.ID.rjust(4, ' ')}. [{ann.from_ts.ts} -- {ann.to_ts.ts}] {ann.value}")
