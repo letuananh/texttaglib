@@ -10,7 +10,13 @@ Main functions are:
 - TTLIG - A human-friendly intelinear gloss format for linguistic documentation 
 - Manipuling transcription files directly in ELAN Annotation Format (eaf)
 
-# Installation
+## Useful Links
+
+- texttaglib documentation: https://texttaglib.readthedocs.io/
+- texttaglib on PyPI: https://pypi.org/project/texttaglib/
+- Soure code: https://github.com/letuananh/texttaglib/
+
+## Installation
 
 texttaglib is availble on PyPI.
 
@@ -20,7 +26,7 @@ pip install texttaglib
 python3 -m pip install texttaglib
 ```
 
-# Basic usage
+## Basic usage
 
 ```python
 >>> from texttaglib import ttl
@@ -48,7 +54,7 @@ The script above will generate this corpus
 -rw-rw-r--.  1 tuananh tuananh      58  3月 29 13:10 mydoc_tokens.txt
 ```
 
-# ELAN support
+## ELAN support
 
 texttaglib library contains a command line tool for converting EAF files into CSV.
 
@@ -79,7 +85,7 @@ for tier in elan.tiers():
         print(f"{ann.ID.rjust(4, ' ')}. [{ann.from_ts.ts} -- {ann.to_ts.ts}] {ann.value}")
 ```
 
-# SQLite support
+## SQLite support
 
 TTL data can be stored in a SQLite database for better corpus analysis.
 Sample code will be added soon.
