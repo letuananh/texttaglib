@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
 
 '''
-ELAN module for manipulating ELAN transcript files (*.eaf, *.pfsx)
-
-Latest version can be found at https://github.com/letuananh/texttaglib
-
-@author: Le Tuan Anh <tuananh.ke@gmail.com>
-@license: MIT
+ELAN module for manipulating ELAN transcript files (\*.eaf, \*.pfsx)
 '''
 
 # Copyright (c) 2020, Le Tuan Anh <tuananh.ke@gmail.com>
@@ -28,6 +23,8 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+#
+# Latest version can be found at https://github.com/letuananh/texttaglib
 
 ########################################################################
 
@@ -55,8 +52,7 @@ def getLogger():
 
 class TimeSlot():
     def __init__(self, ID, value=None):
-        """
-        An ELAN timestamp (with ID)
+        """ An ELAN timestamp (with ID)
         """
         self.ID = ID
         self.value = value
@@ -166,6 +162,8 @@ class ELANRefAnnotation(ELANAnnotation):
 
 
 class ELANTier(DataObject):
+
+    ''' Represents an annotation tier in ELAN '''
 
     NONE = "None"
     TIME_SUB = "Time_Subdivision"
@@ -356,6 +354,9 @@ class ELANContraint(DataObject):
 
 
 class ELANDoc(DataObject):
+
+    ''' This class represents an EAF file '''
+    
     def __init__(self, **kwargs):
         """
         """
@@ -467,6 +468,13 @@ def __resolve(elan_doc):
 
 
 def parse_eaf_stream(eaf_stream):
+    ''' Parse an EAF text stream and return an ELAN object
+
+    :param eaf_stream: a text-based stream object
+    :type eaf_stream: Text I/O
+    :return: an ELANDoc object
+    :rtype: texttaglib.elan.ELANDoc
+    '''
     elan_doc = ELANDoc()
     current_tier = None
     for event, elem in ET.iterparse(eaf_stream, events=('start', 'end')):
@@ -496,3 +504,16 @@ def parse_eaf_stream(eaf_stream):
                 elem.clear()
     __resolve(elan_doc)  # link parts together
     return elan_doc
+
+
+def open_eaf(eaf_path, *args, **kwargs) -> ELANDoc:
+    ''' Read and parse an EAF file and return an ELANDoc object 
+
+    :param eaf_path: Path to an EAF file
+    :return: An ELANDoc object
+    :rtype: texttaglib.elan.ELANDoc
+    '''
+    
+    with open(eaf_path, *args, **kwargs) as eaf_stream:
+        elan_doc = parse_eaf_stream(eaf_path)
+    return eaf_path

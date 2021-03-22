@@ -10,7 +10,15 @@ ELAN supports
 
 texttaglib supports reading and manipulating multi-tier transcriptions from ELAN directly.
             
-.. module:: texttaglib.elan
+.. automodule:: texttaglib.elan
+   :members: open_eaf, parse_eaf_stream
+
+.. autoclass:: ELANDoc
+   :members:
+
+.. autoclass:: ELANTier
+   :members:
+   :member-order: groupwise
 
 TTL Interlinear Gloss Format
 ----------------------------
