@@ -1,5 +1,7 @@
-Python library for managing and annotating text corpuses using TextTagLib (TTL) format.
+texttaglib is a Python library for managing and annotating text corpuses in different formats.
+
 Main functions are:
+
 - Multiple storage formats (text files, JSON files, SQLite databases)
 - TTLIG - A human-friendly intelinear gloss format for linguistic documentation 
 - Manipuling transcription files directly in ELAN Annotation Format (eaf)
@@ -7,6 +9,7 @@ Main functions are:
 # Installation
 
 texttaglib is availble on PyPI.
+
 ```bash
 pip install texttaglib
 # or more explicit
@@ -14,6 +17,7 @@ python3 -m pip install texttaglib
 ```
 
 # Basic usage
+
 ```python
 >>> from texttaglib import ttl
 >>> doc = ttl.Document('mydoc')
@@ -31,6 +35,7 @@ python3 -m pip install texttaglib
 ```
 
 The script above will generate this corpus
+
 ```
 -rw-rw-r--.  1 tuananh tuananh       0  3月 29 13:10 mydoc_concepts.txt
 -rw-rw-r--.  1 tuananh tuananh       0  3月 29 13:10 mydoc_links.txt
@@ -71,5 +76,6 @@ for tier in elan.tiers():
 ```
 
 # SQLite support
+
 TTL data can be stored in a SQLite database for better corpus analysis.
 Sample code will be added soon.
