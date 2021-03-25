@@ -34,6 +34,7 @@ from collections import defaultdict as dd
 import xml.etree.ElementTree as ET
 
 from chirptext import DataObject
+from chirptext import chio
 
 from .vtt import sec2ts, ts2sec
 
@@ -506,7 +507,7 @@ def parse_eaf_stream(eaf_stream):
     return elan_doc
 
 
-def open_eaf(eaf_path, *args, **kwargs) -> ELANDoc:
+def open_eaf(eaf_path, encoding='utf-8', *args, **kwargs) -> ELANDoc:
     ''' Read and parse an EAF file and return an ELANDoc object 
 
     :param eaf_path: Path to an EAF file
@@ -514,6 +515,6 @@ def open_eaf(eaf_path, *args, **kwargs) -> ELANDoc:
     :rtype: texttaglib.elan.ELANDoc
     '''
     
-    with open(eaf_path, *args, **kwargs) as eaf_stream:
+    with chio.open(eaf_path, encoding=encoding, *args, **kwargs) as eaf_stream:
         elan_doc = parse_eaf_stream(eaf_path)
         return elan_doc
