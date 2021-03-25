@@ -31,6 +31,7 @@ ELAN module for manipulating ELAN transcript files (\*.eaf, \*.pfsx)
 import logging
 from collections import OrderedDict
 from collections import defaultdict as dd
+from typing import List, Tuple
 import xml.etree.ElementTree as ET
 
 from chirptext import DataObject
@@ -51,6 +52,10 @@ def getLogger():
 # Models
 # ----------------------------------------------------------------------
 
+CSVRow = List[str]
+CSVTable = List[CSVRow]
+
+
 class TimeSlot():
     def __init__(self, ID, value=None):
         """ An ELAN timestamp (with ID)
@@ -67,9 +72,18 @@ class TimeSlot():
         return self.value / 1000 if self.value is not None else None
 
     def __lt__(self, other):
+        if other is None or (isinstance(other, TimeSlot) and other.value is None):
+            return False
         return self.value < other.value if isinstance(other, TimeSlot) else self.value < other
 
+    def __eq__(self, other):
+        if other is None or (isinstance(other, TimeSlot) and other.value is None):
+            return False
+        return self.value == other.value if isinstance(other, TimeSlot) else self.value == other
+
     def __gt__(self, other):
+        if other is None or (isinstance(other, TimeSlot) and other.value is None):
+            return True
         return self.value > other.value if isinstance(other, TimeSlot) else self.value > other
 
     def __le__(self, other):
@@ -77,9 +91,6 @@ class TimeSlot():
 
     def __ge__(self, other):
         return self > other or self == other
-
-    def __eq__(self, other):
-        return self.value == other.value if isinstance(other, TimeSlot) else self.value == other
 
     def __add__(self, other):
         return self.value + other.value if isinstance(other, TimeSlot) else self.value + other
@@ -110,10 +121,10 @@ class TimeSlot():
 
 
 class ELANAnnotation(DataObject):
+    """ An ELAN abstract annotation (for both alignable and non-alignable annotations)
+    """
+
     def __init__(self, ID, value, cve_ref=None, **kwargs):
-        """
-        An ELAN abstract annotation
-        """
         super().__init__(**kwargs)
         self.ID = ID
         self.value = value
@@ -127,10 +138,9 @@ class ELANAnnotation(DataObject):
 
 
 class ELANTimeAnnotation(ELANAnnotation):
+    """ An ELAN time-alignable annotation
+    """
     def __init__(self, ID, from_ts, to_ts, value, **kwargs):
-        """
-        An ELAN time-alignable annotation
-        """
         super().__init__(ID, value, **kwargs)
         self.from_ts = from_ts
         self.to_ts = to_ts
@@ -153,18 +163,37 @@ class ELANTimeAnnotation(ELANAnnotation):
 
 
 class ELANRefAnnotation(ELANAnnotation):
+    """ An ELAN ref annotation (not time alignable)
+    """
+
     def __init__(self, ID, ref, previous, value, **kwargs):
-        """
-        An ELAN ref annotation (not time alignable)
-        """
         super().__init__(ID, value, **kwargs)
         self.ref = ref  # ANNOTATION_REF
         self.previous = previous  # PREVIOUS_ANNOTATION
 
 
-class ELANTier(DataObject):
+class LinguisticType(DataObject):
+    def __init__(self, xml_node=None):
+        """
+        Linguistic Tier Type
+        """
+        data = {k.lower(): v for k, v in xml_node.attrib.items()} if xml_node is not None else {}
+        if "time_alignable" in data:
+            data["time_alignable"] = data["time_alignable"] == "true"
+        super().__init__(**data)
+        self.vocab = None
+        self.tiers = []
 
-    ''' Represents an annotation tier in ELAN '''
+    @property
+    def ID(self):
+        return self.linguistic_type_id
+
+    def __repr__(self):
+        return f"LinguisticType(ID={repr(self.ID)}, constraints={repr(self.constraints)}"
+
+
+class ELANTier(DataObject):
+    """ Represents an ELAN annotation tier """
 
     NONE = "None"
     TIME_SUB = "Time_Subdivision"
@@ -172,13 +201,13 @@ class ELANTier(DataObject):
     INCL = "Included_In"
     SYM_ASSOC = "Symbolic_Association"
 
-    def __init__(self, type_ref, participant, ID, doc=None, default_locale=None, parent_ref=None, **kwargs):
+    def __init__(self, type_ref_id, participant, ID, doc=None, default_locale=None, parent_ref=None, **kwargs):
         """
         ELAN Tier Model which contains annotation objects
         """
         super().__init__(**kwargs)
-        self.type_ref = type_ref
-        self.linguistic_type = None
+        self.__type_ref = None
+        self.__type_ref_id = type_ref_id
         self.participant = participant if participant else ''
         self.ID = ID
         self.default_locale = default_locale
@@ -187,6 +216,24 @@ class ELANTier(DataObject):
         self.doc = doc
         self.children = []
         self.annotations = []
+
+    @property
+    def time_alignable(self):
+        """ Check if this tier contains time alignable annotations """
+        return self.linguistic_type and self.linguistic_type.time_alignable
+
+    @property
+    def linguistic_type(self) -> LinguisticType:
+        """ Linguistic type object of this Tier """
+        return self.__type_ref
+
+    def _set_type_ref(self, type_ref_object):
+        """ [Internal function] Update type_ref object of this Tier """
+        self.__type_ref = type_ref_object
+
+    @property
+    def _type_ref_id(self):
+        return self.__type_ref_id
 
     def __getitem__(self, key):
         return self.annotations[key]
@@ -220,7 +267,7 @@ class ELANTier(DataObject):
         return 'Tier(ID={})'.format(self.ID)
 
     def __str__(self):
-        return 'Tier(ID={}/type={})'.format(self.ID, self.type_ref)
+        return f'Tier(ID={repr(self.ID)}),type={repr(self.linguistic_type)})'.format(self.ID, self.linguistic_type)
 
     def add_alignable_annotation_xml(self, alignable):
         ann_id = alignable.get('ANNOTATION_ID')
@@ -259,28 +306,20 @@ class ELANTier(DataObject):
             self.annotations.append(anno)
             return anno
 
-    def add_annotation_xml(self, annotation_node):
-        ''' Create an annotation from a node '''
+    def _add_annotation_xml(self, annotation_node) -> ELANAnnotation:
+        """ [Internal function] Create an annotation from a node
+        
+        General users should not use this function.
+        """
         alignable = annotation_node.find('ALIGNABLE_ANNOTATION')
         if alignable is not None:
-            self.add_alignable_annotation_xml(alignable)
+            return self.add_alignable_annotation_xml(alignable)
         else:
             ref_ann_node = annotation_node.find('REF_ANNOTATION')
             if ref_ann_node is not None:
-                self.add_ref_annotation_xml(ref_ann_node)
+                return self.add_ref_annotation_xml(ref_ann_node)
             else:
                 raise ValueError("ANNOTATION node must not be empty")
-
-
-class LinguisticType(DataObject):
-    def __init__(self, xml_node=None):
-        """
-        Linguistic Tier Type
-        """
-        data = {k.lower(): v for k, v in xml_node.attrib.items()} if xml_node is not None else {}
-        super().__init__(**data)
-        self.vocab = None
-        self.tiers = []
 
 
 class ELANCVEntry(DataObject):
@@ -347,6 +386,8 @@ class ELANVocab(DataObject):
 
 
 class ELANContraint(DataObject):
+    """ ELAN Tier Constraints """
+
     def __init__(self, xml_node=None):
         super().__init__()
         if xml_node is not None:
@@ -354,32 +395,57 @@ class ELANContraint(DataObject):
             self.stereotype = xml_node.get('STEREOTYPE')
 
 
+TierTuple = Tuple[ELANTier]
+LinguisticTypeTuple= Tuple[LinguisticType]
+ConstraintTuple = Tuple[ELANContraint]
+VocabTuple = Tuple[ELANVocab]
+
+
 class ELANDoc(DataObject):
 
-    ''' This class represents an EAF file '''
+    ''' This class represents an ELAN file (\*.eaf)
+    '''
     
     def __init__(self, **kwargs):
-        """
-        """
         super().__init__(**kwargs)
         self.properties = OrderedDict()
         self.time_order = OrderedDict()
-        self.tiers_map = OrderedDict()
-        self.linguistic_types = []
-        self.constraints = []
-        self.vocabs = []
-        self.roots = []
+        self.__tiers_map = OrderedDict()  # internal - map tierIDs to tier objects
+        self.__linguistic_types = []
+        self.__constraints = []
+        self.__vocabs = []
+        self.__roots = []
+
+    @property
+    def roots(self) -> TierTuple:
+        """ All root-level tiers in this ELAN doc """
+        return tuple(self.__roots)
+
+    @property
+    def vocabs(self) -> VocabTuple:
+        """ A tuple of all existing controlled vocabulary objects in this ELAN file """
+        return tuple(self.__vocabs)
+
+    @property
+    def constraints(self) -> ConstraintTuple:
+        """ A tuple of all existing constraints in this ELAN file """
+        return tuple(self.__constraints)
+
+    @property
+    def linguistic_types(self) -> LinguisticTypeTuple:
+        """ A tuple of all existing linguistic types in this ELAN file """
+        return tuple(self.__linguistic_types)
 
     def get_linguistic_type(self, type_id):
         ''' Get linguistic type by ID. Return None if can not be found '''
-        for lingtype in self.linguistic_types:
+        for lingtype in self.__linguistic_types:
             if lingtype.linguistic_type_id == type_id:
                 return lingtype
         return None
 
     def get_vocab(self, vocab_id):
         ''' Get controlled vocab list by ID '''
-        for vocab in self.vocabs:
+        for vocab in self.__vocabs:
             if vocab.ID == vocab_id:
                 return vocab
         return None
@@ -393,20 +459,34 @@ class ELANDoc(DataObject):
             par_map[t.participant].append(t)
         return par_map
 
+    def __getitem__(self, tierID):
+        ''' Find a tier object using tierID '''
+        return self.__tiers_map[tierID]
+    
     def __iter__(self):
-        return iter(self.tiers_map.values())
+        """ Iterate through all tiers in this ELAN file """
+        return iter(self.__tiers_map.values())
 
-    def tiers(self):
-        return self.tiers_map.values()
+    def tiers(self) -> TierTuple:
+        """ Collect all existing Tier in this ELAN file 
+        """
+        return tuple(self.__tiers_map.values())
 
-    def update_info_xml(self, node):
+    def _update_info_xml(self, node):
+        ''' [Internal function] Update ELAN file metadata from an XML node 
+        
+        General users should not use this function.
+        '''
         self.author = node.get('AUTHOR')
         self.date = node.get('DATE')
         self.fileformat = node.get('FORMAT')
         self.version = node.get('VERSION')
 
-    def update_header_xml(self, node):
-        ''' Read ELAN doc information from HEADER node '''
+    def _update_header_xml(self, node):
+        ''' [Internal function] Read ELAN doc information from a HEADER XML node 
+
+        General users should not use this function.
+        '''
         self.media_file = node.get('MEDIA_FILE')
         self.time_units = node.get('TIME_UNITS')
         # extract media information
@@ -419,23 +499,59 @@ class ELANDoc(DataObject):
         for prop_node in node.findall('PROPERTY'):
             self.properties[prop_node.get('NAME')] = prop_node.text
 
-    def add_tier_xml(self, tier_node):
+    def _add_tier_xml(self, tier_node) -> ELANTier:
+        ''' [Internal function] Parse a TIER XML node, create an ELANTier object and link it to this ELANDoc
+
+        General users should not use this function.
+        '''
         type_ref = tier_node.get('LINGUISTIC_TYPE_REF')
         participant = tier_node.get('PARTICIPANT')
         tier_id = tier_node.get('TIER_ID')
         parent_ref = tier_node.get('PARENT_REF')
         default_locale = tier_node.get('DEFAULT_LOCALE')
         tier = ELANTier(type_ref, participant, tier_id, doc=self, default_locale=default_locale, parent_ref=parent_ref)
-        if tier_id in self.tiers_map:
+        if tier_id in self.__tiers_map:
             raise ValueError("Duplicated tier ID ({})".format(tier_id))
-        self.tiers_map[tier_id] = tier
+        self.__tiers_map[tier_id] = tier
+        if tier.parent_ref is None:
+            self.__roots.append(tier)
         return tier
 
-    def add_timeslot_xml(self, timeslot_node):
+    def _add_timeslot_xml(self, timeslot_node):
+        ''' [Internal function] Parse a TimeSlot XML node and link it to current ELANDoc
+
+        General users should not use this function.
+        '''
         timeslot = TimeSlot.from_node(timeslot_node)
         self.time_order[timeslot.ID] = timeslot
 
-    def to_csv_rows(self):
+    def _add_linguistic_type_xml(self, elem):
+        ''' [Internal function] Parse a LinguisticType XML node and link it to current ELANDoc
+
+        General users should not use this function.
+        '''
+        self.__linguistic_types.append(LinguisticType(elem))
+
+    def _add_constraint_xml(self, elem):
+        ''' [Internal function] Parse a CONSTRAINT XML node and link it to current ELANDoc
+
+        General users should not use this function.
+        '''
+        self.__constraints.append(ELANContraint(elem))
+
+    def _add_vocab_xml(self, elem):
+        ''' [Internal function] Parse a CONTROLLED_VOCABULARY XML node and link it to current ELANDoc
+
+        General users should not use this function.
+        '''
+        self.__vocabs.append(ELANVocab.from_xml(elem))
+
+    def to_csv_rows(self) -> CSVTable:
+        ''' Convert this ELANDoc into a CSV-friendly structure (i.e. list of list of strings) 
+        
+        :return: A list of list of strings
+        :rtype: CSVTable
+        '''
         rows = []
         for tier in self.tiers():
             for anno in tier.annotations:
@@ -453,19 +569,15 @@ def __resolve(elan_doc):
         if lingtype.controlled_vocabulary_ref:
             lingtype.vocab = elan_doc.get_vocab(lingtype.controlled_vocabulary_ref)
     # resolves tiers' roots, parents, and type
-    elan_doc.roots = []
-    # link tier to parents
     for tier in elan_doc.tiers():
-        lingtype = elan_doc.get_linguistic_type(tier.type_ref)
-        tier.linguistic_type = lingtype
+        lingtype = elan_doc.get_linguistic_type(tier._type_ref_id)
+        tier._set_type_ref(lingtype)
         lingtype.tiers.append(tier)  # type -> tiers
         if lingtype.vocab:
             lingtype.vocab.tiers.append(tier)  # vocab -> tiers
         if tier.parent_ref is not None:
-            tier.parent = elan_doc.tiers_map[tier.parent_ref]
-            elan_doc.tiers_map[tier.parent_ref].children.append(tier)
-        else:
-            elan_doc.roots.append(tier)
+            tier.parent = elan_doc[tier.parent_ref]
+            elan_doc[tier.parent_ref].children.append(tier)
 
 
 def parse_eaf_stream(eaf_stream):
@@ -481,27 +593,27 @@ def parse_eaf_stream(eaf_stream):
     for event, elem in ET.iterparse(eaf_stream, events=('start', 'end')):
         if event == 'start':
             if elem.tag == 'ANNOTATION_DOCUMENT':
-                elan_doc.update_info_xml(elem)
+                elan_doc._update_info_xml(elem)
             elif elem.tag == 'TIER':
-                current_tier = elan_doc.add_tier_xml(elem)
+                current_tier = elan_doc._add_tier_xml(elem)
         elif event == 'end':
             if elem.tag == 'HEADER':
-                elan_doc.update_header_xml(elem)
+                elan_doc._update_header_xml(elem)
                 elem.clear()  # no need to keep header node in memory
             elif elem.tag == 'TIME_SLOT':
-                elan_doc.add_timeslot_xml(elem)
+                elan_doc._add_timeslot_xml(elem)
                 elem.clear()
             elif elem.tag == 'ANNOTATION':
-                current_tier.add_annotation_xml(elem)
+                current_tier._add_annotation_xml(elem)
                 elem.clear()
             elif elem.tag == 'LINGUISTIC_TYPE':
-                elan_doc.linguistic_types.append(LinguisticType(elem))
+                elan_doc._add_linguistic_type_xml(elem)
                 elem.clear()
             elif elem.tag == 'CONSTRAINT':
-                elan_doc.constraints.append(ELANContraint(elem))
+                elan_doc._add_constraint_xml(elem)
                 elem.clear()
             elif elem.tag == 'CONTROLLED_VOCABULARY':
-                elan_doc.vocabs.append(ELANVocab.from_xml(elem))
+                elan_doc._add_vocab_xml(elem)
                 elem.clear()
     __resolve(elan_doc)  # link parts together
     return elan_doc
