@@ -15,6 +15,7 @@ texttaglib supports reading and manipulating multi-tier transcriptions from ELAN
 
 .. autoclass:: ELANDoc
    :members:
+   :member-order: groupwise
 
 .. autoclass:: ELANTier
    :members:
