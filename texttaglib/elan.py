@@ -516,4 +516,4 @@ def open_eaf(eaf_path, *args, **kwargs) -> ELANDoc:
     
     with open(eaf_path, *args, **kwargs) as eaf_stream:
         elan_doc = parse_eaf_stream(eaf_path)
-    return eaf_path
+        return elan_doc
