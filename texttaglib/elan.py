@@ -323,10 +323,11 @@ class ELANTier(DataObject):
 
 
 class ELANCVEntry(DataObject):
-    def __init__(self, ID, lang_ref, value, description=None):
-        """
 
-        """
+    ''' A controlled vocabulary entry '''
+    
+    def __init__(self, ID, lang_ref, value, description=None, **kwargs):
+        super().__init__(**kwargs)
         self.ID = ID
         self.lang_ref = lang_ref
         self.value = value
@@ -342,9 +343,7 @@ class ELANCVEntry(DataObject):
 class ELANVocab(DataObject):
     ''' ELAN Controlled Vocabulary '''
     def __init__(self, ID, description, lang_ref, entries=None, **kwargs):
-        """
-
-        """
+        super().__init__(**kwargs)
         self.ID = ID
         self.description = description
         self.lang_ref = lang_ref

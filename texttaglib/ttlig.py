@@ -34,7 +34,6 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 import re
 import logging
 from difflib import ndiff
-from collections import defaultdict as dd
 from collections import OrderedDict
 import warnings
 
@@ -126,7 +125,6 @@ class IGRow(DataObject):
                 else:
                     for t, m in zip(ttl_sent, _glosstokens):
                         t.new_tag(m, tagtype='wgloss')
-            pass
         return ttl_sent
 
     def to_expex(self, default_ident=''):
