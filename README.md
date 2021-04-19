@@ -1,6 +1,8 @@
 # texttaglib
 
 [![ReadTheDocs Badge](https://readthedocs.org/projects/texttaglib/badge/?version=latest&style=plastic)](https://texttaglib.readthedocs.io/)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/letuananh/texttaglib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/letuananh/texttaglib/alerts/)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/letuananh/texttaglib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/letuananh/texttaglib/context:python)
 
 texttaglib is a Python library for managing and annotating text corpuses in different formats.
 
