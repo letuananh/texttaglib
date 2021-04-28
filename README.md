@@ -6,7 +6,7 @@
 
 ## Warning
 
-⚠️ THIS REPOSITORY IS ARCHIVED. ALL FUTURE DEVELOPMENT WILL BE ON [speach](https://pypi.org/project/speach/) LIBRARY ⚠️
+⚠️ THIS PROJECT IS ARCHIVED. ALL FUTURE DEVELOPMENT WILL BE ON [speach](https://pypi.org/project/speach/) LIBRARY ⚠️
 
 Migration from `texttaglib` to `speach` should be trivial
 
