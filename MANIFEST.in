@@ -1,6 +1,4 @@
 include README.md
-include CHANGES.md
+include LEGACY.md
 include requirements*.txt
 recursive-include texttaglib/data *.sql
-recursive-include texttaglib/data *.json
-recursive-include texttaglib/data *.gz
