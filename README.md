@@ -4,6 +4,32 @@
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/letuananh/texttaglib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/letuananh/texttaglib/alerts/)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/letuananh/texttaglib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/letuananh/texttaglib/context:python)
 
+## Warning
+
+⚠️ THIS REPOSITORY IS ARCHIVED. ALL FUTURE DEVELOPMENT WILL BE ON [speach](https://github.com/neocl/speach) LIBRARY ⚠️
+
+Migration from `texttaglib` to `speach` should be trivial
+
+```python
+# just change import statements from something like
+from texttaglib import elan
+# to 
+from speach import elan
+```
+
+Installation
+
+```bash
+# change
+pip install texttaglib 
+# into
+pip install speach
+```
+
+For more information, please visit: https://github.com/neocl/speach
+
+## Legacy
+
 texttaglib is a Python library for managing and annotating text corpuses in different formats.
 
 Main functions are:
