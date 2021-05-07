@@ -66,7 +66,7 @@ setup(
         "Bug Tracker": "https://github.com/letuananh/texttaglib/issues",
         "Source Code": "https://github.com/letuananh/texttaglib/"
     },
-    keywords="nlp",
+    keywords=["nlp", "annotation", "text", "corpus", "linguistics", "ELAN", "transcription"],
     license=pkg_info['__license__'],
     author=pkg_info['__author__'],
     tests_require=requirements,
