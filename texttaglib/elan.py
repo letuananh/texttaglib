@@ -34,8 +34,8 @@ from collections import defaultdict as dd
 from typing import List, Tuple
 import xml.etree.ElementTree as ET
 
-from chirptext import DataObject
-from chirptext import chio
+from texttaglib.chirptext import DataObject
+from texttaglib.chirptext import chio
 
 from .vtt import sec2ts, ts2sec
 

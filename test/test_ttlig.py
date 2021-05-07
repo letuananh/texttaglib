@@ -41,8 +41,8 @@ import unittest
 import logging
 from collections import OrderedDict
 
-from chirptext import chio
-from chirptext import deko
+from texttaglib.chirptext import chio
+from texttaglib.chirptext import deko
 
 from texttaglib import ttl
 from texttaglib import ttlig

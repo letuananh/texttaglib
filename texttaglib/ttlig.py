@@ -37,11 +37,11 @@ from difflib import ndiff
 from collections import OrderedDict
 import warnings
 
-from chirptext import DataObject, piter
-from chirptext import chio
-from chirptext.deko import is_kana, parse
+from texttaglib.chirptext import DataObject, piter
+from texttaglib.chirptext import chio
+from texttaglib.chirptext.deko import is_kana, parse
+from texttaglib.chirptext import ttl
 
-from texttaglib import ttl
 
 
 # ----------------------------------------------------------------------

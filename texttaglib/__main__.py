@@ -33,11 +33,10 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 
 import os
 import logging
-from lxml import etree
 
-from chirptext import TextReport, FileHelper
-from chirptext import chio
-from chirptext.cli import CLIApp, setup_logging
+from texttaglib.chirptext import TextReport, FileHelper
+from texttaglib.chirptext import chio
+from texttaglib.chirptext.cli import CLIApp, setup_logging
 
 from texttaglib import ttl, TTLSQLite, ttlig, orgmode
 from texttaglib.elan import parse_eaf_stream
@@ -185,21 +184,28 @@ def make_text(sent, delimiter=' '):
 
 def make_html(cli, args):
     ''' Convert TTL to HTML '''
-    print("Reading document ...")
-    ttl_doc = ttl.Document.read_ttl(args.ttl)
-    output = TextReport(args.output)
-    doc_node = etree.Element('doc')
-    for sent in ttl_doc:
-        sent_node = etree.SubElement(doc_node, 'sent')
-        text_node = etree.XML(make_text(sent, delimiter=args.delimiter))
-        sent_node.append(text_node)
-        if sent.get_tag('translation'):
+    _LXML_AVAILABLE = False
+    try:
+        from lxml import etree
+        _LXML_AVAILABLE = True
+    except Exception:
+        print("lxml is required for this function")
+    if _LXML_AVAILABLE:
+        print("Reading document ...")
+        ttl_doc = ttl.Document.read_ttl(args.ttl)
+        output = TextReport(args.output)
+        doc_node = etree.Element('doc')
+        for sent in ttl_doc:
+            sent_node = etree.SubElement(doc_node, 'sent')
+            text_node = etree.XML(make_text(sent, delimiter=args.delimiter))
+            sent_node.append(text_node)
+            if sent.get_tag('translation'):
+                etree.SubElement(sent_node, 'br')
+                trans_node = etree.SubElement(sent_node, 'trans')
+                trans_node.text = sent.get_tag('translation').label
             etree.SubElement(sent_node, 'br')
-            trans_node = etree.SubElement(sent_node, 'trans')
-            trans_node.text = sent.get_tag('translation').label
-        etree.SubElement(sent_node, 'br')
-        etree.SubElement(sent_node, 'br')
-    output.write(etree.tostring(doc_node, encoding='unicode', pretty_print=not args.compact))
+            etree.SubElement(sent_node, 'br')
+        output.write(etree.tostring(doc_node, encoding='unicode', pretty_print=not args.compact))
 
 
 def sec_str(a_float):
