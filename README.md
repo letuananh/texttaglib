@@ -42,3 +42,5 @@ from texttaglib.chirptext import chio
 from texttaglib.chirptext import deko
 from texttaglib.puchikarui import Schema
 ```
+
+Legacy documentation: https://texttaglib.readthedocs.io
