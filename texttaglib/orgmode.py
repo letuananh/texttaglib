@@ -39,7 +39,7 @@ import re
 import os
 import logging
 
-from texttaglib.chirptext import chio
+from .chirptext import chio
 
 
 # ----------------------------------------------------------------------

@@ -34,9 +34,9 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 import os
 import logging
 
-from texttaglib.chirptext import TextReport, FileHelper
-from texttaglib.chirptext import chio
-from texttaglib.chirptext.cli import CLIApp, setup_logging
+from .chirptext import TextReport, FileHelper
+from .chirptext import chio
+from .chirptext.cli import CLIApp, setup_logging
 
 from texttaglib import ttl, TTLSQLite, ttlig, orgmode
 from texttaglib.elan import parse_eaf_stream
