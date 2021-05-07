@@ -1,2 +1,0 @@
-chirptext >= 0.1a18
-puchikarui
