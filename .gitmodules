@@ -1,0 +1,8 @@
+[submodule "modules/chirptext"]
+	path = modules/chirptext
+	url = https://github.com/letuananh/chirptext
+	branch = chirptext-0.1
+[submodule "modules/puchikarui"]
+	path = modules/puchikarui
+	url = https://github.com/letuananh/puchikarui
+	branch = puchikarui-0.1

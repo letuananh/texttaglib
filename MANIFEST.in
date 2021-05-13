@@ -2,3 +2,5 @@ include README.md
 include LEGACY.md
 include requirements*.txt
 recursive-include texttaglib/data *.sql
+recursive-include texttaglib/chirptext/data/luke/swadesh *.txt
+recursive-include texttaglib/chirptext/data/sino *.csv

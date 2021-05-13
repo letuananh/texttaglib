@@ -33,9 +33,9 @@ Latest version can be found at https://github.com/letuananh/texttaglib
 
 import logging
 
-from chirptext import DataObject
-from puchikarui import Schema, with_ctx
-from texttaglib import ttl
+from .puchikarui import Schema, with_ctx
+from .chirptext import DataObject
+from .chirptext import ttl
 from .data import INIT_TTL_SQLITE
 
 

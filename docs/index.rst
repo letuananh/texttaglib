@@ -3,10 +3,48 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to texttaglib's documentation!
-======================================
+texttaglib's documentation!
+===========================
+
+.. warning::
+    ⚠️ THIS PROJECT HAS BEEN RENAMED AND ARCHIVED. ALL FUTURE DEVELOPMENT WILL BE ON
+    `speach <https://pypi.org/project/speach/>`__ LIBRARY ⚠️
+
+Migration to speach
+-------------------
+    
+    Migration from ``texttaglib`` to `speach <https://speach.readthedocs.io/>`_ should be trivial
+
+
+.. code:: python
+
+    # just change import statements from something like
+    from texttaglib import elan
+    # to the new package name
+    from speach import elan
+
+Installation
+
+.. code:: bash
+
+    # change
+    pip install texttaglib 
+    # into
+    pip install speach
+
+-  For more information, please visit: https://speach.readthedocs.io/
+
+(Legacy) Introduction
+---------------------
 
 texttaglib is a Python library for managing and annotating text corpuses in different formats.
+
+.. image:: https://readthedocs.org/projects/texttaglib/badge/?version=latest&style=plastic
+   :target: https://texttaglib.readthedocs.io/
+.. image:: https://img.shields.io/lgtm/alerts/g/letuananh/texttaglib.svg?logo=lgtm&logoWidth=18
+   :target: https://lgtm.com/projects/g/letuananh/texttaglib/alerts/
+.. image:: https://img.shields.io/lgtm/grade/python/g/letuananh/texttaglib.svg?logo=lgtm&logoWidth=18
+   :target: https://lgtm.com/projects/g/letuananh/texttaglib/context:python
 
 Main functions are:
 
@@ -24,8 +62,6 @@ texttaglib is availble on PyPI.
 .. code:: bash
 
    pip install texttaglib
-   # or more explicit
-   python3 -m pip install texttaglib
 
 Basic usage
 -----------
