@@ -1,6 +1,6 @@
 # texttaglib
 
-a Python library for managing and annotating text corpuses in different formats.
+a Python library for managing and annotating text corpuses in different formats (ELAN, TIG, TTL, et cetera).
 
 [![ReadTheDocs Badge](https://readthedocs.org/projects/texttaglib/badge/?version=latest&style=plastic)](https://texttaglib.readthedocs.io/)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/letuananh/texttaglib.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/letuananh/texttaglib/alerts/)
@@ -32,7 +32,7 @@ For more information, please visit: https://github.com/neocl/speach
 
 ## Legacy
 
-texttaglib >= 0.1.1 will use embedded chirptext (based on version 0.1.x) and puchikarui (version 0.1.x) instead of latest packages to support legacy APIs.
+texttaglib legacy releases (>= 0.1.1, < 0.2) use embedded chirptext-0.1 and puchikarui-0.1 for supporting legacy APIs.
 
 Here is the sample code:
 
